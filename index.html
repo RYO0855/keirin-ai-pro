@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101b29">
-<title>KEIRIN AI PRO | 競輪分析ワークスペース</title>
+<title>KEIRIN AI PRO</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1420;--card:#152233;--line:#2a3c51;--muted:#a1b1c5;--accent:#6de3c0;--gold:#ffd58a}
 *{box-sizing:border-box}
@@ -82,7 +82,7 @@ aside .race{min-width:200px}
 <header>
 <div>
 <h1>KEIRIN <span>AI PRO</span></h1>
-<small>競輪分析ワークスペース / FRONTEND v1.2</small>
+<small>競輪分析ワークスペース / FRONTEND v1.3</small>
 </div>
 <span class="badge">実データ取得対応 / オッズ未接続</span>
 </header>
@@ -91,7 +91,7 @@ aside .race{min-width:200px}
 <div>
 <p class="muted">RACE INTELLIGENCE</p>
 <h2>データを確かめ、展開を読む。</h2>
-<p class="muted">連係履歴から期待値まで、一つの分析画面に。</p>
+<p class="muted">連係履歴・選手メモ・買い目設定を一つの画面に。</p>
 </div>
 <div class="controls">
 <label>データソース
@@ -115,14 +115,9 @@ aside .race{min-width:200px}
 <label>地域
 <select id="region">
 <option value="">全国</option>
-<option>北日本</option>
-<option>関東</option>
-<option>南関東</option>
-<option>中部</option>
-<option>近畿</option>
-<option>中国</option>
-<option>四国</option>
-<option>九州</option>
+<option>北日本</option><option>関東</option><option>南関東</option>
+<option>中部</option><option>近畿</option><option>中国</option>
+<option>四国</option><option>九州</option>
 </select>
 </label>
 <div id="races" class="race-list"></div>
@@ -132,26 +127,24 @@ aside .race{min-width:200px}
 <h3>分析ルール</h3>
 <label>連係履歴の最低件数<input id="minN" type="number" min="1" max="1000" value="5"></label>
 <label>最低期待収益率 (%)<input id="minEV" type="number" min="0" max="1000" value="5"></label>
-<p class="muted">基準未達はケン。確率・オッズ・履歴が欠ける場合はデータ不足とします。</p>
+<p class="muted">実オッズ・検証済み確率が不足する場合はケン。手入力の期待値は仮説計算です。</p>
 </section>
 </aside>
 <div>
-<section class="card">
-<div id="raceHeader"></div>
-<div id="stats" class="grid"></div>
-</section>
+<section class="card"><div id="raceHeader"></div><div id="stats" class="grid"></div></section>
 <nav class="tabs" aria-label="分析メニュー">
 <button data-tab="analysis" class="active">ライン・連係</button>
 <button data-tab="scenario">展開シナリオ</button>
-<button data-tab="value">オッズ・期待値</button>
+<button data-tab="value">買い目・期待値</button>
 <button data-tab="backtest">仮想バックテスト</button>
+<button data-tab="notes">選手メモ</button>
 <button data-tab="observations">連係記録</button>
 <button data-tab="data">データ管理</button>
 </nav>
 <div id="panel"></div>
 </div>
 </div>
-<p class="footer">このアプリはブラウザ内で計算します。予測AI・実オッズAPI・投票機能は未接続です。実取得データの出典は競輪 観測ラボ（yomisuji）です。期待値は入力確率に依存し、利益を保証しません。取り込み内容は運営者が検証した実データではありません。</p>
+<p class="footer">このアプリはブラウザ内で計算します。予測AI・実オッズAPI・投票機能は未接続です。実取得データの出典は競輪 観測ラボ（yomisuji）です。観測スコアや選手メモを的中確率に変換しません。取り込み内容は運営者が検証した実データではありません。</p>
 </main>
 <div id="message" role="status" aria-live="polite"></div>
 <script>
@@ -182,73 +175,46 @@ riders:[
 {no:7,id:'G',name:'サンプル木村',line:3,position:2}
 ]
 })),
-history:[],
-bets:[]
+history:[],bets:[]
 };
-
 for(let i=0;i<24;i++){
 sample.history.push({
-date:'2026-10-'+String(i+1).padStart(2,'0'),
-raceId:'past'+i,
-leader:i%2?'D':'A',
-follower:i%2?'E':'B',
-followed:i%4!==0,
-dropped:i%4===0,
-leaderRank:i%3+1,
-followerRank:i%4+1
+date:'2026-10-'+String(i+1).padStart(2,'0'),raceId:'past'+i,
+leader:i%2?'D':'A',follower:i%2?'E':'B',
+followed:i%4!==0,dropped:i%4===0,
+leaderRank:i%3+1,followerRank:i%4+1
 });
 }
-
 for(const [leader,follower] of [['B','C'],['F','G']]){
 for(let i=0;i<12;i++){
 sample.history.push({
-date:'2026-10-'+String(i+1).padStart(2,'0'),
-raceId:'extra'+i,
-leader,follower,
-followed:i%3!==0,
-dropped:i%3===0,
-leaderRank:i%3+1,
-followerRank:i%4+1
+date:'2026-10-'+String(i+1).padStart(2,'0'),raceId:'extra'+i,
+leader,follower,followed:i%3!==0,dropped:i%3===0,
+leaderRank:i%3+1,followerRank:i%4+1
 });
 }
 }
-
 for(let i=0;i<12;i++){
 sample.bets.push({
-id:'b'+i,
-raceId:'historic'+i,
-type:'2車単',
-selection:'1-2',
-probability:0.25,
-odds:5,
-stake:100,
+id:'b'+i,raceId:'historic'+i,type:'2車単',selection:'1-2',
+probability:0.25,odds:5,stake:100,
 forecastAt:'2026-10-'+String(i+1).padStart(2,'0')+'T10:00:00+09:00',
 start:'2026-10-'+String(i+1).padStart(2,'0')+'T12:00:00+09:00',
 settledAt:'2026-10-'+String(i+1).padStart(2,'0')+'T12:10:00+09:00',
-result:i%3===0?'1-2':'4-5',
-dividend:i%3===0?500:400
+result:i%3===0?'1-2':'4-5',dividend:i%3===0?500:400
 });
 }
-
 let imported={races:[],history:[],bets:[]};
 let source='sample',selected='s1',tab='analysis';
 let drafts={},scenarios={},importName='';
 
 try{
 const saved=JSON.parse(localStorage.getItem('keirin-import-v1')||'null');
-if(saved){
-validate(saved.data);
-imported=saved.data;
-importName=saved.name;
-}
+if(saved){validate(saved.data);imported=saved.data;importName=saved.name}
 }catch(e){}
 
-function db(){
-return source==='live'?live:source==='sample'?sample:imported;
-}
-function race(){
-return db().races.find(r=>r.id===selected);
-}
+function db(){return source==='live'?live:source==='sample'?sample:imported}
+function race(){return db().races.find(r=>r.id===selected)}
 function tell(t){
 $('#message').textContent=t;
 $('#message').style.display='block';
@@ -273,9 +239,7 @@ const map={};
 r.riders.forEach(x=>(map[x.line]??=[]).push(x));
 return Object.values(map).map(a=>a.sort((a,b)=>a.position-b.position));
 }
-function pairs(r){
-return groups(r).flatMap(g=>g.slice(1).map((x,i)=>[g[i],x]));
-}
+function pairs(r){return groups(r).flatMap(g=>g.slice(1).map((x,i)=>[g[i],x]))}
 function enough(){
 const r=race();
 return r&&pairs(r).length>0&&pairs(r).every(([a,b])=>historyFor(a.id,b.id).length>=+$('#minN').value);
@@ -307,11 +271,10 @@ renderPanel();
 function table(head,rows){
 return `<div class="table-wrap"><table><thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
-function tr(c){
-return '<tr>'+c.map(x=>`<td>${x}</td>`).join('')+'</tr>';
-}
+function tr(c){return '<tr>'+c.map(x=>`<td>${x}</td>`).join('')+'</tr>'}
 function renderPanel(){
 const r=race(),p=$('#panel');
+if(tab==='notes'){renderPlayerNotes();return}
 if(tab==='data'){renderData();return}
 if(tab==='backtest'){renderBacktest();return}
 if(!r){
@@ -329,13 +292,7 @@ ${groups(r).map((g,i)=>`<h4>LINE ${i+1}</h4><div class="line">${g.map(x=>`<div c
 <h3>選手同士の連係履歴</h3>
 ${table(['先行 → 追走','件数','追走成功率','千切れ率','両者3着内'],pairs(r).map(([a,b])=>{
 let h=historyFor(a.id,b.id),n=h.length;
-return tr([
-esc(a.name)+' → '+esc(b.name),
-n,
-n?pct(h.filter(x=>x.followed).length/n):'—',
-n?pct(h.filter(x=>x.dropped).length/n):'—',
-n?pct(h.filter(x=>x.leaderRank<=3&&x.followerRank<=3).length/n):'—'
-]);
+return tr([esc(a.name)+' → '+esc(b.name),n,n?pct(h.filter(x=>x.followed).length/n):'—',n?pct(h.filter(x=>x.dropped).length/n):'—',n?pct(h.filter(x=>x.leaderRank<=3&&x.followerRank<=3).length/n):'—']);
 }))}
 <p class="muted">発走より前の日の履歴のみ使用。同日の結果は除外。追走成功・千切れは提供者の判定で、連対確率ではありません。</p>
 <details><summary>対象履歴を表示</summary>
@@ -354,10 +311,11 @@ ${groups(r).map((g,i)=>`
 <p>${g.length>1?esc(g[1].name)+'が番手を追走し、直線の差しを狙う。':'単騎で位置を取り、捲り・追い込みを狙う。'} 他ラインの先行争いで展開が変わります。</p>
 <label>評価・根拠メモ<textarea data-note="${i}" placeholder="風向き、先行争い、連係の不安など">${esc((scenarios[source+selected]||{})[i]||'')}</textarea></label>
 </div>`).join('')}
-<p class="muted">メモはこのページを開いている間のみ保持します。</p>
+<p class="muted">この展開メモはページを開いている間のみ保持します。選手メモは端末に保存できます。</p>
 </section>`;
 }
 if(tab==='value')renderValue();
+if(tab==='scenario')appendConfirmedNotes();
 }
 function currentDraft(){
 return drafts[source+selected]??={type:'2車単',selection:'1-2',probability:'',odds:'',stake:'100'};
@@ -366,16 +324,16 @@ function validSelection(type,s,r){
 let a=s.split('-');
 return a.length===(type==='2車単'?2:3)&&new Set(a).size===a.length&&a.every(x=>/^\d+$/.test(x)&&r.riders.some(y=>String(y.no)===x));
 }
-function judge(x){
+function validDraft(x){
 let p=num(x.probability),o=num(x.odds),s=num(x.stake);
-if(!validSelection(x.type,x.selection,race())||!Number.isFinite(p)||p<=0||p>1||!Number.isFinite(o)||o<1||!Number.isFinite(s)||s<100||s%100!==0||!enough())return 'データ不足';
-return p*o-1>=+$('#minEV').value/100?'買い候補':'ケン';
+return !!race()&&validSelection(x.type,x.selection,race())&&Number.isFinite(p)&&p>0&&p<=1&&Number.isFinite(o)&&o>=1&&Number.isFinite(s)&&s>=100&&s%100===0&&enough();
 }
+function judge(x){return 'ケン'}
 function renderValue(){
 const x=currentDraft();
 $('#panel').innerHTML=`
 <section class="card">
-<h3>オッズ期待値計算</h3>
+<h3>手入力の仮説期待値</h3>
 <p class="notice">確率は利用者の仮説入力です。AI推定・市場の実測値ではありません。オッズも手入力です。</p>
 <div class="controls">
 <label>券種<select id="betType"><option>2車単</option><option>3連単</option></select></label>
@@ -399,7 +357,7 @@ x.stake=$('#stake').value;
 updateEV();
 }));
 $('#record').onclick=()=>{
-if(judge(x)==='データ不足'){
+if(!validDraft(x)){
 tell('有効な買い目・確率・オッズ・100円単位の金額と、全連係の最低履歴件数が必要です。');
 return;
 }
@@ -416,31 +374,28 @@ tell('同一券種の確率合計が100%を超えます。');
 return;
 }
 db().bets.push({
-...x,
-probability:num(x.probability),
-odds:num(x.odds),
-stake:num(x.stake),
-id:'local-'+Date.now(),
-raceId:selected,
-forecastAt:new Date().toISOString(),
-start:race().start
+...x,probability:num(x.probability),odds:num(x.odds),stake:num(x.stake),
+id:'local-'+Date.now(),raceId:selected,
+forecastAt:new Date().toISOString(),start:race().start
 });
 if(source==='imported')save();
 updateEV();
 tell('仮想検討記録を追加しました。');
 };
 updateEV();
+renderTicketSettings();
 }
 function updateEV(){
 let x=currentDraft(),p=num(x.probability),o=num(x.odds),s=num(x.stake);
 let ok=p>0&&p<=1&&o>=1&&Number.isFinite(o)&&s>=100&&s%100===0,status=judge(x);
 $('#evResult').innerHTML=`
 <div class="grid">
-<div class="stat"><small>判定</small><b style="font-size:22px" class="${status==='買い候補'?'good':'warn'}">${status}</b></div>
-<div class="stat"><small>期待収益率 / p × odds − 1</small><b>${ok?pct(p*o-1):'—'}</b></div>
-<div class="stat"><small>期待純損益</small><b>${ok?Math.round(s*(p*o-1)).toLocaleString()+'円':'—'}</b></div>
+<div class="stat"><small>判定</small><b style="font-size:22px">${status}</b></div>
+<div class="stat"><small>仮説期待収益率 / p × odds − 1</small><b>${ok?pct(p*o-1):'—'}</b></div>
+<div class="stat"><small>仮説期待純損益</small><b>${ok?Math.round(s*(p*o-1)).toLocaleString()+'円':'—'}</b></div>
 </div>
-<p class="muted">損益分岐確率 ${o>=1&&Number.isFinite(o)?pct(1/o):'—'}。複数買い目の確率は独立に入力します。同一券種・同一レースの総確率が100%を超える組合せは整合しません。</p>`;
+<p class="notice">判定：ケン。実オッズ・検証済み確率がないため、手入力の仮説だけでは買い候補にしません。</p>
+<p class="muted">損益分岐確率 ${o>=1&&Number.isFinite(o)?pct(1/o):'—'}。同一券種・同一レースの総確率が100%を超える組合せは整合しません。</p>`;
 $('#betList').innerHTML=table(['レース','券種','買い目','仮説確率','入力オッズ','金額'],db().bets.filter(b=>b.raceId===selected).map(b=>tr([esc(b.raceId),esc(b.type),esc(b.selection),pct(b.probability),esc(b.odds),esc(b.stake)])));
 }
 function settled(b){
@@ -473,7 +428,7 @@ $('#panel').innerHTML=`
 </div>
 <p>対象 ${a.rows.length}件 / 的中 ${a.hits}件 / 投資 ${a.cost.toLocaleString()}円 / 払戻 ${a.paid.toLocaleString()}円</p>
 ${table(['開催日時','券種','買い目','結果','仮想投資','払戻'],a.rows.map(b=>tr([esc(b.start.slice(0,16)),esc(b.type),esc(b.selection),esc(b.result),b.stake+'円',(b.selection===b.result?b.dividend*b.stake/100:0)+'円'])))}
-<p class="muted">同一時刻はID順で計算。欠損結果・未来の確定・発走後の予測は除外。過去データ自体の改変や後付け確率は検出できません。履歴件数基準は過去記録に適用しません。複数買い目は各記録の固定額で集計し、資金制約・オッズ変動は再現しません。</p>
+<p class="muted">同一時刻はID順で計算。欠損結果・未来の確定・発走後の予測は除外。過去データ自体の改変や後付け確率は検出できません。履歴件数基準は過去記録に適用しません。資金制約・オッズ変動は再現しません。</p>
 </section>`;
 }
 function fail(s){throw Error(s)}
@@ -569,8 +524,7 @@ function download(name,content,type){
 const url=URL.createObjectURL(new Blob([content],{type}));
 const a=document.createElement('a');
 a.href=url;a.download=name;
-document.body.append(a);
-a.click();a.remove();
+document.body.append(a);a.click();a.remove();
 setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
 function renderData(){
@@ -584,34 +538,32 @@ $('#panel').innerHTML=`
 <button id="sampleCSV">CSVテンプレート</button>
 </div>
 <p id="importStatus" role="status" class="muted">取り込み済み：${esc(importName||'なし')} / 開催 ${imported.races.length} / 履歴 ${imported.history.length} / 検討 ${imported.bets.length}</p>
-<details>
-<summary>データ形式・計算定義</summary>
-<p>JSONのトップレベルは races, history, bets の3配列。サンプルをダウンロードして書き換えてください。確率は0〜1（0除外）、払戻は100円あたり・元本込みです。空欄をゼロとして補完しません。</p>
+<details><summary>データ形式・計算定義</summary>
+<p>JSONのトップレベルは races, history, bets の3配列。サンプルをダウンロードして書き換えてください。確率は0〜1（0除外）、払戻は100円あたり・元本込みです。</p>
 <pre>races: id, region, venue, round, start(+09:00), riders[]
-riders: no(車番), id, name, line(ライン番号), position(1からの並び)
-history: date(YYYY-MM-DD), raceId, leader(ID), follower(ID), followed(boolean), dropped(boolean), leaderRank, followerRank
-bets: id, raceId, type(2車単/3連単), selection(1-2/1-2-3), probability, odds, stake(100円単位), forecastAt, start
-結果付きbets: result, dividend(100円あたり払戻), settledAt
-時刻: ISO8601、秒・タイムゾーン必須（Zまたは+09:00）。開催startは+09:00。
+riders: no, id, name, line, position
+history: date, raceId, leader, follower, followed, dropped, leaderRank, followerRank
+bets: id, raceId, type, selection, probability, odds, stake, forecastAt, start
+結果付きbets: result, dividend, settledAt
+時刻: ISO8601、秒・タイムゾーン必須（Zまたは+09:00）
+開催startは+09:00
 履歴CSV: date,raceId,leader,follower,followed,dropped,leaderRank,followerRank</pre>
-<p>追走成功率 = followed=true件数 / 連係件数。千切れ率 = dropped=true件数 / 連係件数。判定の定義は提供元で揃えてください。取り込んだ確率は履歴から自動生成しません。</p>
-<p>ファイルは外部に送信しません。取り込みデータはこのブラウザのlocalStorageに保存します（プライベートモード・容量制限では失敗することがあります）。共有端末では削除してください。メモと新規サンプル記録は再読み込みで消えます。</p>
+<p>追走成功率 = followed=true件数 / 連係件数。千切れ率 = dropped=true件数 / 連係件数。判定の定義は提供元で揃えてください。</p>
+<p>ファイルは外部に送信しません。取り込みデータはlocalStorageに保存します。容量制限などで保存できない場合があります。メモは選手メモ画面から別途バックアップできます。</p>
 </details>
 <button id="clear" class="bad">取り込みデータを削除</button>
 </section>
 <section class="card">
 <h3>接続・実装状況</h3>
-<p class="good">実装済み：一覧フィルター、ライン表示、連係集計、展開メモ、手入力期待値、履歴CSV / 一括JSON、事前記録の仮想集計、JSON書き出し。</p>
+<p>実データの一覧・詳細接続は「実データを取得」で利用できます。</p>
 <p class="muted">未接続：公式のリアルタイム出走表・確定結果・オッズAPI、選手データベース、学習済み予測モデル、自動確率生成、サーバー保存、購入実行。</p>
 </section>`;
 $('#sampleJSON').onclick=()=>download('SAMPLE-fictional-keirin.json',JSON.stringify(sample,null,2),'application/json');
 $('#sampleCSV').onclick=()=>download('SAMPLE-fictional-history.csv','date,raceId,leader,follower,followed,dropped,leaderRank,followerRank\n2026-10-01,example-1,A,B,true,false,1,2\n','text/csv;charset=utf-8');
 $('#clear').onclick=()=>{
-imported={races:[],history:[],bets:[]};
-importName='';
+imported={races:[],history:[],bets:[]};importName='';
 try{localStorage.removeItem('keirin-import-v1')}catch(e){}
-render();
-tell('取り込みデータを削除しました');
+render();tell('取り込みデータを削除しました');
 };
 $('#file').onchange=async e=>{
 const f=e.target.files[0];
@@ -626,12 +578,11 @@ else fail('CSVまたはJSONを選んでください');
 validate(next);
 imported=next;
 importName=f.name+' / '+new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'});
-source='imported';
-$('#source').value=source;
+source='imported';$('#source').value=source;
 $('#date').value=imported.races[0]?.start.slice(0,10)||today;
 const persisted=save();
 render();
-tell(persisted?'検証完了。取り込みデータへ切り替えました。':'取り込み完了。永続保存できないため書き出してください。');
+tell(persisted?'検証完了。取り込みデータへ切り替えました。':'永続保存できないため書き出してください。');
 }catch(err){
 $('#importStatus').textContent='取り込み失敗：'+err.message+'（以前のデータは保持しました）';
 }
@@ -650,8 +601,7 @@ for(const id of ['minN','minEV']){
 $('#'+id).onchange=()=>{
 const el=$('#'+id),v=num(el.value);
 if(!Number.isFinite(v)||v<(id==='minN'?1:0)||v>1000||(id==='minN'&&!Number.isInteger(v))){
-el.value=5;
-tell('分析基準を有効な値に戻しました');
+el.value=5;tell('分析基準を有効な値に戻しました');
 }
 render();
 };
@@ -676,14 +626,12 @@ if(e.target.dataset.note!=null)(scenarios[source+selected]??={})[e.target.datase
 $('#export').onclick=()=>download((source==='sample'?'SAMPLE-fictional':'IMPORTED-unverified')+'-keirin.json',JSON.stringify(db(),null,2),'application/json');
 validate(sample);
 
-// 実データ接続。観測スコアを的中確率へ変換しません。
 const PROVIDER='https://keirin.yomisuji.jp';
 const LIVE_STORE='keirin-evidence-v1';
 let live={races:[],history:[],bets:[]};
 let liveMeta={fetchedAt:null,lastModified:null,error:null};
 let detailState={},indexBusy=false;
 let evidence={version:1,profiles:[],observations:[]};
-
 const regionsByPref={};
 Object.entries({
 '北日本':['北海道','青森','岩手','宮城','秋田','山形','福島'],
@@ -695,7 +643,6 @@ Object.entries({
 '四国':['徳島','香川','愛媛','高知'],
 '九州':['福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄']
 }).forEach(([r,p])=>p.forEach(x=>regionsByPref[x]=r));
-
 const venueRegion={};
 Object.entries({
 '北日本':['函館','青森','いわき平'],
@@ -707,14 +654,11 @@ Object.entries({
 '四国':['高松','小松島','高知','松山'],
 '九州':['小倉','久留米','武雄','佐世保','別府','熊本']
 }).forEach(([r,v])=>v.forEach(x=>venueRegion[x]=r));
-
 function rateKnown(rows,key){
 const known=rows.filter(x=>typeof x[key]==='boolean');
 return {n:known.length,value:known.length?known.filter(x=>x[key]).length/known.length:null};
 }
-function profile(id){
-return evidence.profiles.find(x=>x.id===id);
-}
+function profile(id){return evidence.profiles.find(x=>x.id===id)}
 function sameRegion(a,b){
 return a&&b&&regionsByPref[a]&&regionsByPref[b]?regionsByPref[a]===regionsByPref[b]:null;
 }
@@ -742,16 +686,14 @@ try{
 const saved=JSON.parse(localStorage.getItem(LIVE_STORE)||'null');
 if(saved){checkEvidence(saved);evidence=saved}
 }catch(e){
-liveMeta.storageWarning='保存済み観測記録を読めません。上書き前にバックアップを確認してください。';
+liveMeta.storageWarning='保存済み観測記録を読めません。バックアップを確認してください。';
 }
 function persistEvidence(){
 checkEvidence(evidence);
 try{
-localStorage.setItem(LIVE_STORE,JSON.stringify(evidence));
-return true;
+localStorage.setItem(LIVE_STORE,JSON.stringify(evidence));return true;
 }catch(e){
-tell('保存容量不足・保存不可です。観測JSONを書き出してください。');
-return false;
+tell('保存容量不足・保存不可です。観測JSONを書き出してください。');return false;
 }
 }
 function mapIndex(raw){
@@ -759,18 +701,11 @@ if(raw?.schema_version!=='1.0'||raw.domain!=='keirin'||!Array.isArray(raw.races)
 return raw.races.map(x=>{
 if(!/^[a-z0-9]+-\d{8}-\d{1,2}$/.test(x.race_key)||!day(x.race_date)||!text(x.place)||!Number.isInteger(x.race_no)||x.race_no<1||x.race_no>12)fail('レース一覧の値が不正です');
 return {
-id:x.race_key,
-date:x.race_date,
-start:null,
-region:venueRegion[x.place]||'未分類',
-venue:x.place,
-round:x.race_no+'R',
-grade:x.grade??'',
+id:x.race_key,date:x.race_date,start:null,
+region:venueRegion[x.place]||'未分類',venue:x.place,
+round:x.race_no+'R',grade:x.grade??'',
 url:PROVIDER+'/'+x.race_key+'/',
-riders:[],
-lineLabels:[],
-detailsLoaded:false,
-top:x.top??null
+riders:[],lineLabels:[],detailsLoaded:false,top:x.top??null
 };
 });
 }
@@ -778,14 +713,7 @@ function mapDetail(raw,r){
 if(raw?.schema_version!=='1.0'||raw.domain!=='keirin'||raw.race_key!==r.id||raw.race_date!==r.date||raw.place!==r.venue||!Array.isArray(raw.predictions)||raw.predictions.length<2||raw.predictions.length>9||!unique(raw.predictions,p=>p.id)||!unique(raw.predictions,p=>p.racer_id))fail('詳細JSONの構造・レース対応が不正です');
 const riders=raw.predictions.map(p=>{
 if(!Number.isInteger(p.id)||p.id<1||p.id>9||!/^\d{6}$/.test(p.racer_id)||!finite(p.score,0,100))fail('詳細選手の車番・ID・スコアが不正です');
-return {
-no:p.id,
-id:p.racer_id,
-name:'登録番号 '+p.racer_id,
-line:null,
-position:null,
-observationScore:p.score
-};
+return {no:p.id,id:p.racer_id,name:'登録番号 '+p.racer_id,line:null,position:null,observationScore:p.score};
 }).sort((a,b)=>a.no-b.no);
 let lines=raw.meta?.lines;
 if(lines!==undefined&&!Array.isArray(lines))fail('ライン情報の形式が不正です');
@@ -796,9 +724,7 @@ labels.push(typeof l.label==='string'?l.label:'ライン '+(i+1));
 for(const [j,id] of l.members.entries()){
 const rider=riders.find(x=>x.id===id);
 if(!rider||seen.has(id))fail('ライン内の選手IDが不明または重複しています');
-seen.add(id);
-rider.line=i+1;
-rider.position=j+1;
+seen.add(id);rider.line=i+1;rider.position=j+1;
 }
 }
 return {...r,riders,lineLabels:labels,detailsLoaded:true};
@@ -809,21 +735,14 @@ const job=requestQueue.then(async()=>{
 const pause=Math.max(0,1500-(Date.now()-lastRequest));
 if(pause)await new Promise(resolve=>setTimeout(resolve,pause));
 lastRequest=Date.now();
-const controller=new AbortController();
-const timer=setTimeout(()=>controller.abort(),15000);
+const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
 try{
 const response=await fetch(PROVIDER+path,{mode:'cors',credentials:'omit',signal:controller.signal});
 if(!response.ok)throw Error('配信元 HTTP '+response.status);
 const body=await response.text();
 if(body.length>4*1024*1024)fail('配信データが上限を超えています');
-return {
-json:JSON.parse(body),
-fetchedAt:new Date().toISOString(),
-lastModified:response.headers.get('Last-Modified')
-};
-}finally{
-clearTimeout(timer);
-}
+return {json:JSON.parse(body),fetchedAt:new Date().toISOString(),lastModified:response.headers.get('Last-Modified')};
+}finally{clearTimeout(timer)}
 });
 requestQueue=job.catch(()=>{});
 return job;
@@ -831,41 +750,30 @@ return job;
 async function loadLive(){
 if(indexBusy)return;
 if(liveMeta.fetchedAt&&Date.now()-Date.parse(liveMeta.fetchedAt)<600000){
-source='live';
-$('#source').value='live';
-$('#date').value=[...live.races].map(r=>r.date).sort().pop()||today;
-render();
-tell('10分以内の取得済み一覧を表示します。');
-return;
+source='live';$('#source').value='live';
+$('#date').value=live.races.map(r=>r.date).sort().pop()||today;
+render();tell('10分以内の取得済み一覧を表示します。');return;
 }
-indexBusy=true;
-$('#loadLive').disabled=true;
+indexBusy=true;$('#loadLive').disabled=true;
 $('#liveStatus').textContent='配信元から一覧を取得中…';
 try{
-const res=await providerJSON('/index.json');
-const races=mapIndex(res.json);
-live={races,history:[],bets:[]};
-detailState={};
+const res=await providerJSON('/index.json'),races=mapIndex(res.json);
+live={races,history:[],bets:[]};detailState={};
 liveMeta={...liveMeta,...res,json:undefined,error:null};
-source='live';
-$('#source').value='live';
+source='live';$('#source').value='live';
 $('#date').value=races.map(r=>r.date).sort().pop()||today;
-selected=null;
-render();
-tell(races.length+'レースを取得しました。');
+selected=null;render();tell(races.length+'レースを取得しました。');
 }catch(e){
 liveMeta.error=e.name==='AbortError'?'15秒でタイムアウトしました':e.message;
 $('#liveStatus').textContent='取得失敗：'+liveMeta.error+'。前回の一覧があれば保持しています。';
 tell('実データ取得失敗。自動再試行はしません。');
 }finally{
-indexBusy=false;
-$('#loadLive').disabled=false;
+indexBusy=false;$('#loadLive').disabled=false;
 }
 }
 async function loadDetail(id,retry=false){
 if(detailState[id]&&!retry)return;
-detailState[id]={state:'loading'};
-renderLivePanel();
+detailState[id]={state:'loading'};renderLivePanel();
 try{
 const res=await providerJSON('/'+encodeURIComponent(id)+'.json');
 const i=live.races.findIndex(r=>r.id===id);
@@ -882,27 +790,19 @@ const map={};
 r.riders.filter(x=>x.line!==null).forEach(x=>(map[x.line]??=[]).push(x));
 return Object.values(map).map(g=>g.sort((a,b)=>a.position-b.position));
 }
-function livePairs(r){
-return liveGroups(r).flatMap(g=>g.slice(1).map((x,i)=>[g[i],x]));
-}
+function livePairs(r){return liveGroups(r).flatMap(g=>g.slice(1).map((x,i)=>[g[i],x]))}
 function previousEvidence(a,b,r){
 return evidence.observations.filter(o=>o.leader===a&&o.follower===b&&o.date<r.date&&o.raceId!==r.id);
 }
-function displayName(x){
-return profile(x.id)?.name||x.name;
-}
+function displayName(x){return profile(x.id)?.name||x.name}
 function evidenceTable(r){
-return table(
-['先頭 → 追走','過去連係','番手連係','追走成功 / 既知件数','番手追走 / 既知件数','千切れ / 既知件数','同県 / 同地区'],
-livePairs(r).map(([a,b])=>{
+return table(['先頭 → 追走','過去連係','番手連係','追走成功 / 既知件数','番手追走 / 既知件数','千切れ / 既知件数','同県 / 同地区'],livePairs(r).map(([a,b])=>{
 const rows=previousEvidence(a.id,b.id,r);
-const f=rateKnown(rows,'followed');
-const d=rateKnown(rows,'dropped');
+const f=rateKnown(rows,'followed'),d=rateKnown(rows,'dropped');
 const bante=rateKnown(rows.filter(x=>x.position===2),'followed');
 const pa=profile(a.id)?.prefecture,pb=profile(b.id)?.prefecture;
 return tr([
-esc(displayName(a))+' → '+esc(displayName(b)),
-rows.length,
+esc(displayName(a))+' → '+esc(displayName(b)),rows.length,
 rows.filter(x=>x.position===2).length,
 (f.n?pct(f.value):'データ不足')+' / '+f.n,
 (bante.n?pct(bante.value):'データ不足')+' / '+bante.n,
@@ -913,32 +813,20 @@ pa&&pb?(pa===pb?'同県':'別県')+' / '+(sameRegion(pa,pb)?'同地区':'別地�
 }
 function storeLineup(){
 const r=race();
-if(!r?.detailsLoaded||!livePairs(r).length){
-tell('ライン情報がありません');
-return;
-}
+if(!r?.detailsLoaded||!livePairs(r).length){tell('ライン情報がありません');return}
 if(evidence.observations.length+livePairs(r).length>30000){
-tell('観測記録の上限30000件に達しました。書き出して整理してください。');
-return;
+tell('観測記録の上限30000件です。書き出して整理してください。');return;
 }
 let added=0;
 for(const [a,b] of livePairs(r)){
 if(evidence.observations.some(x=>x.raceId===r.id&&x.leader===a.id&&x.follower===b.id))continue;
 evidence.observations.push({
-id:r.id+'_'+a.id+'_'+b.id,
-raceId:r.id,
-date:r.date,
-leader:a.id,
-follower:b.id,
-position:b.position,
+id:r.id+'_'+a.id+'_'+b.id,raceId:r.id,date:r.date,
+leader:a.id,follower:b.id,position:b.position,
 leaderPref:profile(a.id)?.prefecture||null,
 followerPref:profile(b.id)?.prefecture||null,
-followed:null,
-dropped:null,
-source:r.url,
-observedAt:new Date().toISOString(),
-resultSource:null,
-reviewedAt:null
+followed:null,dropped:null,source:r.url,
+observedAt:new Date().toISOString(),resultSource:null,reviewedAt:null
 });
 added++;
 }
@@ -946,12 +834,8 @@ const saved=persistEvidence();
 tell(added+'件を'+(saved?'保存':'セッションへ追加')+'。追走・千切れ結果は未観測です。');
 renderLivePanel();
 }
-
-const baseRender=render;
-const basePanel=renderPanel;
-const baseSourceChange=$('#source').onchange;
-const baseExport=$('#export').onclick;
-
+const baseRender=render,basePanel=renderPanel;
+const baseSourceChange=$('#source').onchange,baseExport=$('#export').onclick;
 render=function(){
 if(source!=='live'){baseRender();return}
 $('#provenance').textContent='実取得データ / 第三者配信：競輪 観測ラボ（yomisuji）。公式APIではありません。観測スコアは的中確率ではありません。二次利用条件未確認。';
@@ -980,47 +864,39 @@ if(r&&!r.detailsLoaded&&!detailState[r.id])void loadDetail(r.id);
 renderPanel=function(){
 if(source==='live'){renderLivePanel();return}
 if(tab==='observations'){
-$('#panel').innerHTML='<section class="card">連係記録は実取得データ専用です。実データモードへ切り替えてください。</section>';
-return;
+$('#panel').innerHTML='<section class="card">連係記録は実取得データ専用です。実データモードへ切り替えてください。</section>';return;
 }
 basePanel();
 };
 function renderLivePanel(){
 if(source!=='live')return;
 const p=$('#panel'),r=race();
+if(tab==='notes'){renderPlayerNotes();return}
 if(tab==='data'){renderLiveData();return}
 if(tab==='observations'){renderObservations();return}
 if(tab==='value'){
-p.innerHTML='<section class="card"><h3>オッズ期待値：データ不足</h3><p class="notice">実オッズは未接続、予測確率は未検証です。配信元の観測スコアを確率へ変換しません。実データモードでは買い候補を生成しません。</p><p>手入力の仮説計算はサンプル／取り込みモードで利用できます。その入力は検証済み予測ではありません。</p></section>';
-return;
+p.innerHTML='<section class="card"><h3>オッズ期待値：ケン（データ不足）</h3><p class="notice">実オッズは未接続、予測確率は未検証です。配信元の観測スコアを確率へ変換しません。実データモードでは買い候補を生成しません。</p><p>手入力の仮説計算はサンプル／取り込みモードで利用できます。その入力は検証済み予測ではありません。</p></section>';
+renderTicketSettings();return;
 }
 if(tab==='backtest'){
-p.innerHTML='<section class="card"><h3>仮想バックテスト：データ不足</h3><p>この配信の一覧・詳細JSONには、事前の検証済み確率・オッズ・確定払戻がありません。観測スコアで払戻シミュレーションは行いません。</p></section>';
-return;
+p.innerHTML='<section class="card"><h3>仮想バックテスト：データ不足</h3><p>この配信の一覧・詳細JSONには、事前の検証済み確率・オッズ・確定払戻がありません。観測スコアで払戻シミュレーションは行いません。</p></section>';return;
 }
 if(!r){
-p.innerHTML='<section class="card">「実データを取得」で一覧を取得するか、日付を選んでください。</section>';
-return;
+p.innerHTML='<section class="card">「実データを取得」で一覧を取得するか、日付を選んでください。</section>';return;
 }
 if(!r.detailsLoaded){
 const s=detailState[r.id];
-p.innerHTML=`
-<section class="card">
-<h3>選手・ライン詳細</h3>
-<p>${s?.state==='error'?'取得失敗：'+esc(s.error):'詳細を取得中…'}</p>
-${s?.state==='error'?'<button id="retryDetail">この詳細だけ再取得</button>':''}
-</section>`;
+p.innerHTML=`<section class="card"><h3>選手・ライン詳細</h3><p>${s?.state==='error'?'取得失敗：'+esc(s.error):'詳細を取得中…'}</p>${s?.state==='error'?'<button id="retryDetail">この詳細だけ再取得</button>':''}</section>`;
 if($('#retryDetail'))$('#retryDetail').onclick=()=>loadDetail(r.id,true);
 return;
 }
 if(tab==='scenario'){
 p.innerHTML=`
-<section class="card">
-<h3>展開シナリオ</h3>
+<section class="card"><h3>展開シナリオ</h3>
 <p class="notice">ライン順に基づく検討用仮説です。確率・実際の展開を推定したものではありません。</p>
 ${liveGroups(r).map(g=>`<div class="stat" style="margin:12px 0">${esc(displayName(g[0]))}が主導権を取る仮説。${g[1]?esc(displayName(g[1]))+'が番手を追走する想定。':'単騎構成。'} 追走結果・風・脚質は未取得。</div>`).join('')||'<p>ライン情報不足</p>'}
 </section>`;
-return;
+appendConfirmedNotes();return;
 }
 p.innerHTML=`
 <section class="card">
@@ -1035,7 +911,7 @@ ${table(['車番','選手登録番号','観測スコア（確率ではない）'
 <section class="card">
 <h3>保存済みの過去連係・同県／同地区</h3>
 ${evidenceTable(r)}
-<p class="muted">選択レースの前日までの同じ順序の隣接ペアを集計。追走率・千切れ率の分母は各項目の既知結果件数です。未観測を失敗に数えません。同県・同地区は現在の手動所属資料の比較です。</p>
+<p class="muted">選択レースの前日までの同順の隣接ペアを集計。追走率・千切れ率は各項目の既知結果だけが分母です。同県・同地区は現在の手動所属資料の比較です。</p>
 </section>`;
 $('#saveLineup').onclick=storeLineup;
 }
@@ -1043,11 +919,9 @@ function renderLiveData(){
 $('#panel').innerHTML=`
 <section class="card">
 <h3>配信元・構造・条件の確認</h3>
-<p>
-<a href="${PROVIDER}/index.json" target="_blank" rel="noopener noreferrer">レース一覧JSON</a> /
+<p><a href="${PROVIDER}/index.json" target="_blank" rel="noopener noreferrer">レース一覧JSON</a> /
 <a href="${PROVIDER}/about/" target="_blank" rel="noopener noreferrer">運営情報</a> /
-<a href="${PROVIDER}/robots.txt" target="_blank" rel="noopener noreferrer">robots.txt</a>
-</p>
+<a href="${PROVIDER}/robots.txt" target="_blank" rel="noopener noreferrer">robots.txt</a></p>
 <p>schema_version=1.0。一覧は races[] に race_key / race_date / race_no / place / grade / top。詳細は /{race_key}.json の predictions[] と meta.lines[].members。</p>
 <p>取得確認時のCORSは一覧・詳細とも Access-Control-Allow-Origin: *。キャッシュは600秒。JSONに更新日時フィールドなし、HTTP Last-Modifiedも確認できません。画面の取得日時は更新日時ではありません。</p>
 <p class="notice">二次利用・再配布を明示的に許可するライセンスは未確認です。CORS許可は利用許諾ではありません。robots.txtには ai-train=no / use=reference の指定があります。このアプリはAI学習や生データの再配信をせず、操作時に配信元へ直接アクセスします。公開運用や再配布の条件は提供者へ確認してください。</p>
@@ -1057,21 +931,17 @@ $('#panel').innerHTML=`
 }
 function observationSummary(){
 const r=race(),rows=evidence.observations.filter(o=>!r||o.date<r.date);
-return table(
-['保存時の所属関係','連係件数','番手追走 / 既知件数','千切れ / 既知件数'],
-['同県','同地区・別県','別地区','所属不明'].map(label=>{
+return table(['保存時の所属関係','連係件数','番手追走 / 既知件数','千切れ / 既知件数'],['同県','同地区・別県','別地区','所属不明'].map(label=>{
 const all=rows.filter(o=>{
 const a=o.leaderPref,b=o.followerPref;
 return (!a||!b?'所属不明':a===b?'同県':sameRegion(a,b)?'同地区・別県':'別地区')===label;
 });
-const f=rateKnown(all.filter(o=>o.position===2),'followed');
-const d=rateKnown(all,'dropped');
+const f=rateKnown(all.filter(o=>o.position===2),'followed'),d=rateKnown(all,'dropped');
 return tr([label,all.length,(f.n?pct(f.value):'データ不足')+' / '+f.n,(d.n?pct(d.value):'データ不足')+' / '+d.n]);
 }));
 }
 function renderObservations(){
-const r=race();
-const options=r?.riders.map(x=>`<option value="${esc(x.id)}">${x.no}番 ${esc(x.id)}</option>`).join('')||'';
+const r=race(),options=r?.riders.map(x=>`<option value="${esc(x.id)}">${x.no}番 ${esc(x.id)}</option>`).join('')||'';
 $('#panel').innerHTML=`
 <section class="card">
 <h3>選手所属資料と連係観測の保存</h3>
@@ -1092,16 +962,15 @@ ${table(['ID','氏名','所属県','地区','出典'],evidence.profiles.map(x=>t
 <label>観測記録JSONを取り込む<input id="evidenceFile" type="file" accept="application/json,.json"></label>
 <button id="deleteEvidence" class="bad">全観測記録を削除</button>
 </div>
-<p>記録 ${evidence.observations.length}件。保存先はこのブラウザのlocalStorageです。バックアップJSONには手動資料・観測記録を含みます。公開共有の可否は出典条件を確認してください。</p>
+<p>記録 ${evidence.observations.length}件。保存先はlocalStorageです。バックアップには手動資料・観測記録を含みます。公開共有の可否は出典条件を確認してください。</p>
 </section>
-<section class="card">
-<h3>保存時の同県・同地区別集計</h3>
+<section class="card"><h3>保存時の同県・同地区別集計</h3>
 <p>選択レースがあればその前日まで、未選択なら全期間。未観測は率の分母から除外します。</p>
 ${observationSummary()}
 </section>
 <section class="card">
 <h3>追走・千切れの確認結果</h3>
-<p>ラインを保存しただけでは結果は不明です。レース映像・結果資料で確認し、項目ごとに判定してください。確定した追走成功と千切れの同時trueは拒否します。</p>
+<p>ラインを保存しただけでは結果は不明です。レース映像・結果資料で確認し、項目ごとに判定してください。</p>
 <div class="controls">
 <label>対象の観測<select id="observationId">${evidence.observations.map(o=>`<option value="${esc(o.id)}">${esc(o.date+' '+o.raceId+' '+o.leader+'→'+o.follower)}</option>`).join('')}</select></label>
 <label>追走成功<select id="followed"><option value="">未観測</option><option value="true">成功</option><option value="false">失敗</option></select></label>
@@ -1111,8 +980,7 @@ ${observationSummary()}
 </div>
 <details><summary>全記録の状況</summary>
 ${table(['開催日','ペア','位置','追走','千切れ','保存時の同県 / 同地区'],evidence.observations.map(o=>tr([
-esc(o.date),
-esc(o.leader+'→'+o.follower),
+esc(o.date),esc(o.leader+'→'+o.follower),
 o.position===2?'番手':'三番手以降',
 o.followed===null?'未観測':o.followed?'成功':'失敗',
 o.dropped===null?'未観測':o.dropped?'あり':'なし',
@@ -1127,19 +995,12 @@ $('#profilePref').value=p?.prefecture||'';
 $('#profileSource').value=p?.source||'';
 $('#profileInfo').textContent=p?'保存済みの手動資料です。':'配信元JSONに氏名・所属県はありません。';
 };
-$('#profileId').onchange=fillProfile;
-fillProfile();
+$('#profileId').onchange=fillProfile;fillProfile();
 $('#saveProfile').onclick=()=>{
-const p={
-id:$('#profileId').value,
-name:$('#profileName').value.trim(),
-prefecture:$('#profilePref').value,
-source:$('#profileSource').value.trim()
-};
+const p={id:$('#profileId').value,name:$('#profileName').value.trim(),prefecture:$('#profilePref').value,source:$('#profileSource').value.trim()};
 try{
 const next={...evidence,profiles:[...evidence.profiles.filter(x=>x.id!==p.id),p]};
-checkEvidence(next);
-evidence=next;
+checkEvidence(next);evidence=next;
 const saved=persistEvidence();
 tell(saved?'所属資料を保存しました':'セッション内に追加しました');
 renderObservations();
@@ -1151,28 +1012,15 @@ $('#followed').value=o?.followed==null?'':String(o.followed);
 $('#dropped').value=o?.dropped==null?'':String(o.dropped);
 $('#resultSource').value=o?.resultSource||'';
 };
-$('#observationId').onchange=fillResult;
-fillResult();
+$('#observationId').onchange=fillResult;fillResult();
 $('#saveResult').onclick=()=>{
-const id=$('#observationId').value;
-const o=evidence.observations.find(x=>x.id===id);
-if(!o){
-tell('先にラインを連係観測として保存してください');
-return;
-}
-const b=v=>v===''?null:v==='true';
-const f=b($('#followed').value),d=b($('#dropped').value);
-const updated={
-...o,
-followed:f,
-dropped:d,
-resultSource:f===null&&d===null?null:$('#resultSource').value.trim(),
-reviewedAt:f===null&&d===null?null:new Date().toISOString()
-};
+const id=$('#observationId').value,o=evidence.observations.find(x=>x.id===id);
+if(!o){tell('先にラインを連係観測として保存してください');return}
+const b=v=>v===''?null:v==='true',f=b($('#followed').value),d=b($('#dropped').value);
+const updated={...o,followed:f,dropped:d,resultSource:f===null&&d===null?null:$('#resultSource').value.trim(),reviewedAt:f===null&&d===null?null:new Date().toISOString()};
 try{
 const next={...evidence,observations:evidence.observations.map(x=>x.id===id?updated:x)};
-checkEvidence(next);
-evidence=next;
+checkEvidence(next);evidence=next;
 const saved=persistEvidence();
 tell(saved?'確認結果を保存しました':'セッション内で更新しました');
 renderObservations();
@@ -1185,8 +1033,7 @@ if(!f)return;
 try{
 if(f.size>5*1024*1024)fail('5MB以下にしてください');
 const next=JSON.parse(await f.text());
-checkEvidence(next);
-evidence=next;
+checkEvidence(next);evidence=next;
 const saved=persistEvidence();
 renderObservations();
 tell(saved?'観測記録を置換しました':'セッション内で置換しました');
@@ -1197,8 +1044,7 @@ if(!confirm('所属資料と全連係記録を削除します。よろしいで�
 try{
 localStorage.removeItem(LIVE_STORE);
 evidence={version:1,profiles:[],observations:[]};
-renderObservations();
-tell('観測記録を削除しました');
+renderObservations();tell('観測記録を削除しました');
 }catch(e){tell('保存領域を削除できませんでした')}
 };
 }
@@ -1216,6 +1062,262 @@ $('#export').onclick=()=>source==='live'
 ?download('keirin-observations.json',JSON.stringify(evidence,null,2),'application/json')
 :baseExport();
 
+// 選手メモ・買い目設定。的中確率とは独立して保存します。
+const PERSONAL_KEY='keirin-personal-v1';
+let personal={version:1,notes:[],plans:{}};
+function validatePersonal(d){
+if(!d||d.version!==1||!Array.isArray(d.notes)||d.notes.length>5000||!d.plans||typeof d.plans!=='object'||Array.isArray(d.plans))fail('メモの保存形式が不正です');
+if(!unique(d.notes,n=>n.id))fail('メモIDが重複しています');
+for(const n of d.notes){
+if(!text(n.id)||!['sample','live','imported'].includes(n.scope)||!text(n.playerId)||!text(n.title)||typeof n.content!=='string'||!n.content.trim()||n.content.length>2000||typeof n.evidenceSource!=='string'||n.evidenceSource.length>200||typeof n.evidenceQuote!=='string'||n.evidenceQuote.length>2000||typeof n.evidenceURL!=='string'||(n.evidenceURL&&!/^https?:\/\/[^\s]+$/i.test(n.evidenceURL))||typeof n.verified!=='boolean'||!time(n.updatedAt))fail('メモの項目が不正です');
+if(n.verified&&(!n.evidenceSource.trim()||!n.evidenceQuote.trim()||!time(n.verifiedAt)||Date.parse(n.verifiedAt)>Date.now()))fail('確認済みメモには根拠資料・確認箇所・確認日時が必要です');
+}
+if(Object.keys(d.plans).length>2000)fail('買い目設定は2000レースまでです');
+for(const p of Object.values(d.plans)){
+if(!p||!['2車単','3連単'].includes(p.holeType)||!Number.isInteger(p.unitStake)||p.unitStake<100||p.unitStake>100000||p.unitStake%100)fail('購入単位が不正です');
+for(const [k,n] of [['exacta',4],['trifecta',10],['holes',8]]){
+if(!Array.isArray(p[k])||p[k].length!==n||!p[k].every(x=>typeof x==='string'&&x.length<=20))fail('買い目設定の点数が不正です');
+}
+}
+return true;
+}
+try{
+const saved=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'null');
+if(saved){validatePersonal(saved);personal=saved}
+}catch(e){tell('保存済みメモを読み込めませんでした。内容を確認してください。')}
+function savePersonal(){
+validatePersonal(personal);
+try{
+localStorage.setItem(PERSONAL_KEY,JSON.stringify(personal));return true;
+}catch(e){
+tell('端末に保存できません。メモJSONを書き出して保管してください。');return false;
+}
+}
+function confirmedNotes(r){
+const ids=new Set((r?.riders||[]).map(x=>x.id));
+return personal.notes.filter(n=>n.scope===source&&n.verified&&ids.has(n.playerId));
+}
+function appendConfirmedNotes(){
+const notes=confirmedNotes(race());
+$('#panel').insertAdjacentHTML('beforeend',`
+<section class="card">
+<h3>確認済み選手メモ（利用者確認）</h3>
+<p class="muted">資料を利用者が確認したメモです。自動の事実認定ではなく、的中確率へ加算しません。ソース間でメモを混在させません。</p>
+${notes.map(n=>`
+<div class="stat" style="margin:12px 0">
+<h4>${esc(n.playerId)} / ${esc(n.title)}</h4>
+<p style="white-space:pre-wrap">${esc(n.content)}</p>
+<details><summary>根拠・確認日時を見る</summary>
+<p>資料：${esc(n.evidenceSource)}</p>
+<p style="white-space:pre-wrap">確認箇所：${esc(n.evidenceQuote)}</p>
+${n.evidenceURL?`<a href="${esc(n.evidenceURL)}" target="_blank" rel="noopener noreferrer">根拠資料を開く</a>`:''}
+<p>利用者確認：${esc(new Date(n.verifiedAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}))}</p>
+</details>
+</div>`).join('')||'<p>このレースの確認済みメモはありません。未検証メモは表示していません。</p>'}
+</section>`);
+}
+function renderPlayerNotes(){
+const scoped=personal.notes.filter(n=>n.scope===source);
+const riders=race()?.riders||[];
+$('#panel').innerHTML=`
+<section class="card">
+<h3>選手別メモ / ${source==='sample'?'架空サンプル':source==='live'?'実取得選手':'取り込み選手'}</h3>
+<p>選手IDで保存します。実取得では6桁の登録番号を使います。未検証メモも保存できますが、展開分析には確認済みメモだけを表示します。メモを確率へ加算する処理はありません。</p>
+<form id="noteForm">
+<input id="noteId" type="hidden">
+<div class="controls">
+<label>選手ID<input id="notePlayer" list="notePlayers" maxlength="100" required>
+<datalist id="notePlayers">${riders.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</datalist>
+</label>
+<label>見出し<input id="noteTitle" maxlength="100" required></label>
+</div>
+<label style="display:block">メモ<textarea id="noteContent" maxlength="2000" required></textarea></label>
+<div class="controls">
+<label>根拠資料名<input id="noteEvidence" maxlength="200"></label>
+<label>根拠URL（任意）<input id="noteURL" type="url" placeholder="https://..." maxlength="1000"></label>
+</div>
+<label style="display:block">確認した箇所・日付・内容<textarea id="noteQuote" maxlength="2000"></textarea></label>
+<label style="display:flex;flex-direction:row;align-items:center">
+<input id="noteVerified" type="checkbox">上記の根拠を自分で確認した（利用者確認）
+</label>
+<p class="muted">編集すると確認状態を解除します。内容を再確認してからチェックしてください。</p>
+<div class="controls">
+<button type="submit" class="primary">メモを保存</button>
+<button id="newNote" type="button">新規メモに戻す</button>
+</div>
+</form>
+<div class="controls" style="margin-top:15px">
+<button id="exportPersonal">メモ・買い目設定JSON</button>
+<label>バックアップを復元（全置換）<input id="personalFile" type="file" accept=".json,application/json"></label>
+</div>
+</section>
+<section class="card">
+<h3>保存済みメモ ${scoped.length}件</h3>
+${scoped.map(n=>`
+<div class="stat" style="margin:12px 0">
+<h4>${esc(n.playerId)} / ${esc(n.title)} <span class="badge">${n.verified?'確認済み（利用者）':'未検証'}</span></h4>
+<p style="white-space:pre-wrap">${esc(n.content)}</p>
+<details><summary>根拠を確認</summary>
+<p>資料：${esc(n.evidenceSource||'未入力')}</p>
+<p style="white-space:pre-wrap">${esc(n.evidenceQuote||'確認箇所未入力')}</p>
+${n.evidenceURL?`<a href="${esc(n.evidenceURL)}" target="_blank" rel="noopener noreferrer">根拠資料を開く</a>`:''}
+<p>確認日時：${n.verified?esc(new Date(n.verifiedAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})):'未確認'}</p>
+</details>
+<button type="button" data-note-edit="${esc(n.id)}">編集・再確認</button>
+<button type="button" data-note-delete="${esc(n.id)}">削除</button>
+</div>`).join('')||'<p>このデータソースのメモはありません。</p>'}
+</section>`;
+$('#notePlayer').value=riders[0]?.id||'';
+$('#noteForm').addEventListener('input',e=>{
+if(e.target.id!=='noteVerified')$('#noteVerified').checked=false;
+});
+$('#newNote').onclick=()=>renderPlayerNotes();
+$('#noteForm').onsubmit=e=>{
+e.preventDefault();
+const playerId=$('#notePlayer').value.trim();
+const verified=$('#noteVerified').checked;
+const old=personal.notes.find(n=>n.id===$('#noteId').value);
+if(source==='live'&&!/^\d{6}$/.test(playerId)){
+tell('実取得の選手IDは6桁の登録番号です。');return;
+}
+const n={
+id:old?.id||'note-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),
+scope:source,playerId,
+title:$('#noteTitle').value.trim(),
+content:$('#noteContent').value.trim(),
+evidenceSource:$('#noteEvidence').value.trim(),
+evidenceURL:$('#noteURL').value.trim(),
+evidenceQuote:$('#noteQuote').value.trim(),
+verified,
+verifiedAt:verified?new Date().toISOString():null,
+updatedAt:new Date().toISOString()
+};
+try{
+const next={...personal,notes:[...personal.notes.filter(x=>x.id!==n.id),n]};
+validatePersonal(next);personal=next;
+const saved=savePersonal();
+renderPlayerNotes();
+tell(saved?'メモを保存しました':'メモをセッション内に保持しました');
+}catch(err){tell(err.message)}
+};
+$('#panel').querySelectorAll('[data-note-edit]').forEach(b=>b.onclick=()=>{
+const n=personal.notes.find(x=>x.id===b.dataset.noteEdit);
+if(!n)return;
+$('#noteId').value=n.id;
+$('#notePlayer').value=n.playerId;
+$('#noteTitle').value=n.title;
+$('#noteContent').value=n.content;
+$('#noteEvidence').value=n.evidenceSource;
+$('#noteURL').value=n.evidenceURL;
+$('#noteQuote').value=n.evidenceQuote;
+$('#noteVerified').checked=false;
+$('#noteForm').scrollIntoView({block:'start'});
+tell('編集後は根拠を再確認してください。');
+});
+$('#panel').querySelectorAll('[data-note-delete]').forEach(b=>b.onclick=()=>{
+if(!confirm('このメモを削除しますか？'))return;
+personal.notes=personal.notes.filter(n=>n.id!==b.dataset.noteDelete);
+savePersonal();renderPlayerNotes();
+});
+$('#exportPersonal').onclick=()=>download('keirin-personal.json',JSON.stringify(personal,null,2),'application/json');
+$('#personalFile').onchange=async e=>{
+const f=e.target.files[0];
+if(!f)return;
+try{
+if(f.size>5*1024*1024)fail('5MB以下にしてください');
+const next=JSON.parse(await f.text());
+validatePersonal(next);
+if(!confirm('メモ・買い目設定を取り込み内容で全置換しますか？'))return;
+personal=next;
+const saved=savePersonal();
+renderPlayerNotes();
+tell(saved?'バックアップを復元しました':'セッション内に復元しました');
+}catch(err){tell('復元失敗：'+err.message)}
+};
+}
+function planKey(){return source+'|'+selected}
+function currentPlan(){
+return personal.plans[planKey()]||{
+exacta:Array(4).fill(''),
+trifecta:Array(10).fill(''),
+holes:Array(8).fill(''),
+holeType:'3連単',
+unitStake:100
+};
+}
+function validatePlanForRace(p,r){
+const seen=new Set();
+for(const [key,type] of [['exacta','2車単'],['trifecta','3連単'],['holes',p.holeType]]){
+for(const s of p[key]){
+if(!s)continue;
+if(!validSelection(type,s,r))fail(type+'の買い目「'+s+'」が不正です');
+const k=type+'|'+s;
+if(seen.has(k))fail('本線・穴目で同じ買い目が重複しています');
+seen.add(k);
+}
+}
+return seen.size;
+}
+function renderTicketSettings(){
+const r=race();
+const html=`
+<section class="card" id="ticketSettings">
+<h3>買い目設定：本線4点・10点 / 穴目8点</h3>
+<p class="notice"><strong>総合判定：ケン</strong> — 実オッズ未接続、検証済み的中確率なし。以下は手動の検討枠です。AIが推奨した買い目ではありません。</p>
+<p>本線2車単4枠、本線3連単10枠、穴目8枠。穴目は初期設定で3連単、券種を変更できます。確認済みメモも観測スコアも的中確率へ加算しません。</p>
+${!r?'<p>レースを選択してください。</p>':`
+<form id="ticketForm">
+<div class="controls">
+<label>穴目の券種<select id="holeType"><option>3連単</option><option>2車単</option></select></label>
+<label>1点あたり仮想額（円）<input id="unitStake" type="number" min="100" max="100000" step="100"></label>
+</div>
+${[['exacta','本線2車単',4],['trifecta','本線3連単',10],['holes','穴目',8]].map(([key,title,n])=>`
+<h4>${title} ${n}点</h4>
+<div class="controls">
+${Array.from({length:n},(_,i)=>`
+<label>${i+1}点目<input class="ticketSelection" data-group="${key}" data-index="${i}" placeholder="${key==='exacta'?'1-2':'1-2-3'}" maxlength="20" style="width:120px"></label>`).join('')}
+</div>`).join('')}
+<p id="ticketSummary" role="status"></p>
+<button class="primary" type="submit">買い目設定を保存</button>
+<p class="muted">空欄は未設定枠として保存できます。購入・自動予測は行いません。根拠資料は選手メモで確認できます。</p>
+</form>`}
+</section>`;
+$('#panel').insertAdjacentHTML('afterbegin',html);
+if(!r)return;
+const p=currentPlan();
+$('#holeType').value=p.holeType;
+$('#unitStake').value=p.unitStake;
+$('#ticketForm').querySelectorAll('.ticketSelection').forEach(el=>{
+el.value=p[el.dataset.group][Number(el.dataset.index)];
+});
+const read=()=>{
+const next={exacta:[],trifecta:[],holes:[],holeType:$('#holeType').value,unitStake:num($('#unitStake').value)};
+$('#ticketForm').querySelectorAll('.ticketSelection').forEach(el=>{
+next[el.dataset.group][Number(el.dataset.index)]=el.value.trim();
+});
+return next;
+};
+const summary=()=>{
+const next=read();
+const n=[...next.exacta,...next.trifecta,...next.holes].filter(Boolean).length;
+let warning='';
+try{validatePlanForRace(next,r)}catch(e){warning=' / '+e.message}
+$('#ticketSummary').textContent='入力済み '+n+'/22点 / 設定額 '+(Number.isFinite(next.unitStake)?(n*next.unitStake).toLocaleString():'—')+'円 / 全22点設定時 '+(Number.isFinite(next.unitStake)?(22*next.unitStake).toLocaleString():'—')+'円 / 判定：ケン'+warning;
+};
+$('#ticketForm').addEventListener('input',summary);
+summary();
+$('#ticketForm').onsubmit=e=>{
+e.preventDefault();
+try{
+const next=read();
+validatePlanForRace(next,r);
+const candidate={...personal,plans:{...personal.plans,[planKey()]:next}};
+validatePersonal(candidate);personal=candidate;
+const saved=savePersonal();
+tell(saved?'買い目設定を保存しました。判定はケンです。':'設定をセッション内に保持しました。');
+}catch(err){tell(err.message)}
+};
+}
 render();
 </script>
 </body>
