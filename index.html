@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
 <meta name="theme-color" content="#101b29">
 <title>KEIRIN AI PRO</title>
 <style>
@@ -82,7 +83,7 @@ aside .race{min-width:200px}
 <header>
 <div>
 <h1>KEIRIN <span>AI PRO</span></h1>
-<small>競輪分析ワークスペース / FRONTEND v1.3</small>
+<small>競輪分析ワークスペース / PLATFORM v2.0</small>
 </div>
 <span class="badge">実データ取得対応 / オッズ未接続</span>
 </header>
@@ -96,7 +97,7 @@ aside .race{min-width:200px}
 <div class="controls">
 <label>データソース
 <select id="source">
-<option value="live">実取得（yomisuji）</option>
+<option value="backend">許可データAPI</option><option value="live">実取得（yomisuji）</option>
 <option value="sample">サンプル（すべて架空）</option>
 <option value="imported">取り込みデータ（未検証）</option>
 </select>
@@ -139,7 +140,7 @@ aside .race{min-width:200px}
 <button data-tab="backtest">仮想バックテスト</button>
 <button data-tab="notes">選手メモ</button>
 <button data-tab="observations">連係記録</button>
-<button data-tab="data">データ管理</button>
+<button data-tab="system">接続・運用</button><button data-tab="data">データ管理</button>
 </nav>
 <div id="panel"></div>
 </div>
@@ -1069,7 +1070,7 @@ function validatePersonal(d){
 if(!d||d.version!==1||!Array.isArray(d.notes)||d.notes.length>5000||!d.plans||typeof d.plans!=='object'||Array.isArray(d.plans))fail('メモの保存形式が不正です');
 if(!unique(d.notes,n=>n.id))fail('メモIDが重複しています');
 for(const n of d.notes){
-if(!text(n.id)||!['sample','live','imported'].includes(n.scope)||!text(n.playerId)||!text(n.title)||typeof n.content!=='string'||!n.content.trim()||n.content.length>2000||typeof n.evidenceSource!=='string'||n.evidenceSource.length>200||typeof n.evidenceQuote!=='string'||n.evidenceQuote.length>2000||typeof n.evidenceURL!=='string'||(n.evidenceURL&&!/^https?:\/\/[^\s]+$/i.test(n.evidenceURL))||typeof n.verified!=='boolean'||!time(n.updatedAt))fail('メモの項目が不正です');
+if(!text(n.id)||!['sample','live','imported','backend'].includes(n.scope)||!text(n.playerId)||!text(n.title)||typeof n.content!=='string'||!n.content.trim()||n.content.length>2000||typeof n.evidenceSource!=='string'||n.evidenceSource.length>200||typeof n.evidenceQuote!=='string'||n.evidenceQuote.length>2000||typeof n.evidenceURL!=='string'||(n.evidenceURL&&!/^https?:\/\/[^\s]+$/i.test(n.evidenceURL))||typeof n.verified!=='boolean'||!time(n.updatedAt))fail('メモの項目が不正です');
 if(n.verified&&(!n.evidenceSource.trim()||!n.evidenceQuote.trim()||!time(n.verifiedAt)||Date.parse(n.verifiedAt)>Date.now()))fail('確認済みメモには根拠資料・確認箇所・確認日時が必要です');
 }
 if(Object.keys(d.plans).length>2000)fail('買い目設定は2000レースまでです');
@@ -1121,7 +1122,7 @@ const scoped=personal.notes.filter(n=>n.scope===source);
 const riders=race()?.riders||[];
 $('#panel').innerHTML=`
 <section class="card">
-<h3>選手別メモ / ${source==='sample'?'架空サンプル':source==='live'?'実取得選手':'取り込み選手'}</h3>
+<h3>選手別メモ / ${source==='sample'?'架空サンプル':source==='live'?'実取得選手':source==='backend'?'許可データ選手':'取り込み選手'}</h3>
 <p>選手IDで保存します。実取得では6桁の登録番号を使います。未検証メモも保存できますが、展開分析には確認済みメモだけを表示します。メモを確率へ加算する処理はありません。</p>
 <form id="noteForm">
 <input id="noteId" type="hidden">
@@ -1263,7 +1264,7 @@ const r=race();
 const html=`
 <section class="card" id="ticketSettings">
 <h3>買い目設定：本線4点・10点 / 穴目8点</h3>
-<p class="notice"><strong>総合判定：ケン</strong> — 実オッズ未接続、検証済み的中確率なし。以下は手動の検討枠です。AIが推奨した買い目ではありません。</p>
+<p class="notice"><strong>手動設定：ケン（未検証）</strong> — この手動設定は実オッズ・検証済み的中確率に紐付いていません。以下は手動の検討枠です。AIが推奨した買い目ではありません。</p>
 <p>本線2車単4枠、本線3連単10枠、穴目8枠。穴目は初期設定で3連単、券種を変更できます。確認済みメモも観測スコアも的中確率へ加算しません。</p>
 ${!r?'<p>レースを選択してください。</p>':`
 <form id="ticketForm">
@@ -1318,6 +1319,27 @@ tell(saved?'買い目設定を保存しました。判定はケンです。':'�
 }catch(err){tell(err.message)}
 };
 }
+// Optional licensed-data API. Credentials stay in page memory only.
+let apiOrigin='',apiToken='',apiStatus=null,apiSession=0,serverData={races:[],history:[],bets:[]},serverDetail={},serverBusy=false;
+try{const savedOrigin=localStorage.getItem('keirin-api-origin');if(savedOrigin)apiOrigin=validAPIOrigin(savedOrigin)}catch(e){}
+function validAPIOrigin(value){const u=new URL(value);if(u.username||u.password||u.search||u.hash||u.pathname!=='/'||(u.protocol!=='https:'&&!(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname))))throw Error('HTTPSのAPIオリジンを指定してください（ローカル開発のみHTTP可）。');return u.origin}
+async function apiCall(path,method='GET',body){if(!apiOrigin||!apiToken)throw Error('APIのURLと認証キーを接続設定で指定してください。');const session=apiSession,c=new AbortController(),timer=setTimeout(()=>c.abort(),path==='/v1/models/train'?120000:15000);try{const r=await fetch(apiOrigin+path,{method,mode:'cors',credentials:'omit',headers:{Authorization:'Bearer '+apiToken,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:c.signal});const t=await r.text();if(session!==apiSession)throw Error('接続が変更されたため応答を破棄しました。');let d;try{d=JSON.parse(t)}catch(e){throw Error('APIからJSON以外の応答が返りました。')}if(!r.ok)throw Error('API HTTP '+r.status+'：'+(typeof d.detail==='string'?d.detail:'入力形式・権限を確認してください'));return d}catch(e){if(e.name==='AbortError')throw Error('APIの応答がタイムアウトしました。自動再試行はしません。');throw e}finally{clearTimeout(timer)}}
+function serverRace(s){return {id:s.id,date:s.date||new Date(s.start).toLocaleDateString('sv-SE',{timeZone:'Asia/Tokyo'}),start:s.start,venue:s.venue,region:s.region,round:s.id,entries:s.entries,lines:s.lines,provenance:s.provenance,riders:s.entries.map(e=>{const i=s.lines.findIndex(g=>g.includes(e.id));return {...e,line:i<0?null:i+1,position:i<0?null:s.lines[i].indexOf(e.id)+1}}),lineLabels:s.lines.map((_,i)=>'登録ライン '+(i+1)),detailsLoaded:true}}
+async function loadServerRaces(){if(serverBusy)return;serverBusy=true;try{const date=$('#date').value||today;let rows=[],offset=0,total=0;do{const r=await apiCall('/v1/races?date='+encodeURIComponent(date)+'&offset='+offset+'&limit=1000');total=r.total;rows.push(...r.races);offset+=r.races.length;if(!r.races.length)break}while(offset<total&&offset<10000);serverData={races:rows.map(serverRace),history:[],bets:[]};serverDetail={};source='backend';$('#source').value=source;selected=rows[0]?.id;render();tell(rows.length+'件の許可登録済みデータを読み込みました。全国網羅を保証しません。')}catch(e){tell(e.message)}finally{serverBusy=false}}
+async function getServerDetail(id){if(serverDetail[id])return;serverDetail[id]={state:'loading'};try{const d=await apiCall('/v1/races/'+encodeURIComponent(id)+'/analysis');serverDetail[id]={state:'ready',data:d}}catch(e){serverDetail[id]={state:'error',error:e.message}}if(source==='backend'&&selected===id)renderServerPanel()}
+const previousDB=db;db=function(){return source==='backend'?serverData:previousDB()};
+const previousRender=render;render=function(){if(source!=='backend'){previousRender();return}$('#provenance').textContent='許可登録済み取り込みデータ / 運用者による許諾確認。公式の全国リアルタイム配信は未接続です。';const rows=serverData.races.filter(r=>r.date===$('#date').value&&(!$('#region').value||r.region===$('#region').value));if(!rows.some(r=>r.id===selected))selected=rows[0]?.id;$('#races').innerHTML=rows.map(r=>`<button class="race ${selected===r.id?'active':''}" data-race="${esc(r.id)}"><strong>${esc(r.venue)} ${esc(r.id)}</strong><small>${esc(new Date(r.start).toLocaleTimeString('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit'}))}</small></button>`).join('')||'<p>該当日の許可データは未取込です。接続設定からデータを取り込んでください。</p>';const r=race();$('#raceHeader').innerHTML=r?`<span class="badge">許可登録済みデータ</span><h2>${esc(r.venue)} ${esc(r.id)}</h2><p>${esc(new Date(r.start).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}))}</p>`:'<h3>許可データ未選択</h3>';$('#stats').innerHTML=r?`<div class="stat">選手<b>${r.riders.length}</b></div><div class="stat">ライン<b>${r.lines.length}</b></div><div class="stat">取得範囲<b style="font-size:16px">取り込み済みのみ</b></div>`:'';$('#liveStatus').textContent='APIの認証キーはメモリ内だけに保持します。再読み込み後は再入力してください。';renderServerPanel();if(r&&!serverDetail[r.id])void getServerDetail(r.id)};
+const previousPanel=renderPanel;renderPanel=function(){if(tab==='system'){renderSystem();return}if(source==='backend'){renderServerPanel();return}previousPanel()};
+const previousSourceHandler=$('#source').onchange;$('#source').onchange=e=>{if(e.target.value==='backend'){source='backend';render()}else previousSourceHandler(e)};
+function renderServerPanel(){if(tab==='system'){renderSystem();return}if(tab==='notes'){renderPlayerNotes();return}if(tab==='observations'){renderObservations();return}const p=$('#panel'),r=race();if(tab==='backtest'){p.innerHTML='<section class="card"><h3>サーバー仮想バックテスト</h3><button id="loadBacktest">事前保存された検討記録を集計</button><pre id="serverReport">未取得。発走前に保存された予測・オッズと、その後の確定払戻が必要です。</pre></section>';$('#loadBacktest').onclick=async()=>{try{$('#serverReport').textContent=JSON.stringify(await apiCall('/v1/backtest'),null,2)}catch(e){tell(e.message)}};return}if(!r){p.innerHTML='<section class="card"><button id="readServerRaces">選択日の許可データを読み込む</button><p>取得前、または許可データ未取込です。架空値で補いません。</p></section>';$('#readServerRaces').onclick=loadServerRaces;return}const state=serverDetail[r.id];if(!state||state.state==='loading'){p.innerHTML='<section class="card">サーバー分析を取得中…</section>';return}if(state.state==='error'){p.innerHTML='<section class="card"><p>'+esc(state.error)+'</p><button id="retryServer">分析を再取得</button></section>';$('#retryServer').onclick=()=>{delete serverDetail[r.id];void getServerDetail(r.id)};return}const d=state.data;
+if(tab==='value'){const plan=d.recommendation;p.innerHTML=`<section class="card"><h3>サーバー判定：${esc(plan.decision)}</h3><p>${esc(plan.reasons.join(' / ')||'校正・評価・運用承認済みモデルと新しいオッズを使用。利益保証はありません。')}</p><p>オッズ：${esc(plan.odds_status)}</p>${table(['枠','券種','買い目','モデル推定確率','オッズ','期待収益率'],Object.entries(plan.plans).flatMap(([g,rows])=>rows.map(x=>tr([esc(g),esc(x.type),esc(x.selection),pct(x.probability),esc(x.odds),pct(x.expected_return)]))))}<button id="recordServer">事前の仮想検討記録をサーバーに保存</button><p>購入は行いません。サーバーで現在値を再計算してから保存します。ケンの場合は保存を拒否します。</p></section>`;$('#recordServer').onclick=async()=>{try{const unit=currentPlan().unitStake;await apiCall('/v1/forecasts','POST',{race_id:r.id,stake_per_ticket:unit});tell('事前の仮想検討記録を保存しました。')}catch(e){tell(e.message)}};renderTicketSettings();return}
+if(tab==='scenario'){p.innerHTML=`<section class="card"><h3>展開仮説と順位シミュレーション</h3>${d.scenarios.map(s=>`<div class="stat" style="margin:10px 0">先頭 ${esc(s.leader)} / ${esc(s.line.join(' → '))}<p>${esc(s.status)}</p></div>`).join('')}<p>${esc(d.simulation_status)}</p><button id="runSimulation">モデルによる順位シミュレーション</button><pre id="simulationResult">未実行</pre></section><section class="card"><h3>サーバーで根拠確認したメモ</h3>${d.reviewed_notes.map(n=>`<div class="stat"><p>${esc(n.player_id)}：${esc(n.content)}</p><details><summary>確認根拠</summary><p>${esc(n.evidence_reference)}</p><p>${esc(n.evidence_excerpt)}</p><p>運用者確認：${esc(n.review?.reviewer||'')}</p></details></div>`).join('')||'<p>根拠確認済みのサーバーメモなし。メモはモデル確率の特徴量に含めません。</p>'}</section>`;$('#runSimulation').onclick=async()=>{try{$('#simulationResult').textContent=JSON.stringify(await apiCall('/v1/races/'+encodeURIComponent(r.id)+'/simulate','POST',{}),null,2)}catch(e){tell(e.message)}};appendConfirmedNotes();return}
+if(tab==='data'){renderSystem();return}
+p.innerHTML=`<section class="card"><h3>出走表・ライン</h3>${r.lines.map(g=>`<div class="line">${g.map(id=>{const e=r.entries.find(e=>e.id===id);return `<div class="rider">${esc(e?.no||'?')} ${esc(e?.name||id)}</div>`}).join(' → ')}</div>`).join('')}${table(['車番','ID','氏名','所属県','競走得点'],r.entries.map(e=>tr([esc(e.no),esc(e.id),esc(e.name),esc(e.prefecture||'未取得'),e.race_points==null?'未取得':esc(e.race_points)])))}</section><section class="card"><h3>過去連係・番手追走・所属関係</h3>${table(['ペア','履歴数','追走 / 既知数','番手追走 / 既知数','千切れ / 既知数','同県','同地区'],d.pairs.map(x=>tr([esc(x.leader+'→'+x.follower),esc(x.count),(x.follow.n?pct(x.follow.value):'不明')+' / '+x.follow.n,(x.bante_follow.n?pct(x.bante_follow.value):'不明')+' / '+x.bante_follow.n,(x.drop.n?pct(x.drop.value):'不明')+' / '+x.drop.n,x.same_prefecture==null?'不明':x.same_prefecture?'同県':'別県',x.same_region==null?'不明':x.same_region?'同地区':'別地区'])))}</section><section class="card"><h3>成績・確定結果（欠損は未取得）</h3><pre>${esc(JSON.stringify({statistics:d.statistics,result:d.result},null,2))}</pre></section>`}
+function renderSystem(){$('#panel').innerHTML=`<section class="card"><h3>バックエンド接続 / 運用設定</h3><p>GitHub Pagesは画面だけを配信します。API・SQLite・学習は別のHTTPSサーバーで実行してください。APIキーをソースやGitHubへ記載しないでください。</p><div class="controls"><label>APIのオリジン<input id="apiOrigin" type="url" placeholder="https://api.example.com" value="${esc(apiOrigin)}"></label><label>認証キー（ページ内のみ保持）<input id="apiKey" type="password" autocomplete="off" value=""></label><button id="connectAPI">接続して状況確認</button><button id="disconnectAPI">認証を解除</button><button id="loadBackendRaces">選択日の許可データを読み込む</button></div><pre id="apiReport">${esc(apiStatus?JSON.stringify(apiStatus,null,2):'未接続。公式全国配信・最新オッズ・承認済みモデルは未接続です。')}</pre></section><section class="card"><h3>利用許可の登録とデータ取り込み</h3><p>実際に取得した利用許可を登録してください。チェック操作自体が許諾を生むものではありません。公開サイトのCORS許可やAPIらしいURLだけでは再利用許諾になりません。</p><form id="sourceGrant"><div class="controls"><label>ソースID<input id="grantId" pattern="[A-Za-z0-9_-]{1,64}" required></label><label>名称<input id="grantName" required maxlength="120"></label><label>許諾書・契約・利用規約の参照<input id="grantRef" minlength="10" maxlength="2000" required></label></div><label><input id="grantTraining" type="checkbox">学習利用も許可されている</label><label><input id="grantAttest" type="checkbox" required>表示・分析への利用許可を実際に確認した</label><button type="submit">許可情報を登録</button></form><label>正規化済みデータJSON（最大5MB）<input id="serverImport" type="file" accept="application/json,.json"></label><p id="importServerStatus" role="status"></p><p>形式はリポジトリの docs/DATA_CONTRACT.md を参照。known_atはサーバーが付与し、過去に遡って変更しません。過去情報を今日取り込んでも「当時知っていた情報」にはしません。</p></section><section class="card"><h3>時系列学習・校正・承認</h3><p>発走前に実際に保存されたデータだけを対象に、JST日付で学習・校正・テストを分割します。最低500/100/100レース。結果の既知時刻も各期間の境界で検査します。未達・評価不合格ならケンを維持します。</p><button id="trainModel">取得済みの許可データで学習・評価</button><div class="controls"><label>承認するモデルID<input id="approveModelId"></label><button id="approveModel">テスト結果を確認して運用承認</button></div><pre id="modelReport">未実行。実データに基づく学習済みモデルは同梱していません。</pre><p>順位モデルのみ実装。風・先行争い・体調を含む走行シミュレーションは未実装です。承認は運用者判断で、利益や的中を保証しません。</p></section>`;
+$('#connectAPI').onclick=async()=>{try{apiSession++;apiOrigin=validAPIOrigin($('#apiOrigin').value.trim());if($('#apiKey').value)apiToken=$('#apiKey').value.trim();apiStatus=await apiCall('/v1/status');try{localStorage.setItem('keirin-api-origin',apiOrigin)}catch(e){}$('#apiKey').value='';$('#apiReport').textContent=JSON.stringify(apiStatus,null,2);tell('APIに接続しました。キーはページを閉じると消えます。')}catch(e){tell(e.message)}};$('#disconnectAPI').onclick=()=>{apiSession++;apiToken='';apiStatus=null;serverData={races:[],history:[],bets:[]};serverDetail={};$('#apiKey').value='';$('#apiReport').textContent='認証を解除しました。';tell('認証と表示キャッシュを消去しました。')};$('#loadBackendRaces').onclick=loadServerRaces;
+$('#sourceGrant').onsubmit=async e=>{e.preventDefault();try{const uses=['display','analysis'];if($('#grantTraining').checked)uses.push('training');await apiCall('/v1/sources','POST',{id:$('#grantId').value,name:$('#grantName').value,permission_reference:$('#grantRef').value,permitted_uses:uses,operator_attests_permission:$('#grantAttest').checked});tell('運用者が確認した許諾情報を登録しました。')}catch(e){tell(e.message)}};$('#serverImport').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>5*1024*1024)throw Error('5MB以下にしてください。');const d=JSON.parse(await f.text());const report=await apiCall('/v1/import','POST',d);$('#importServerStatus').textContent=JSON.stringify(report);serverDetail={}}catch(e){$('#importServerStatus').textContent='取り込み失敗：'+e.message}};$('#trainModel').onclick=async()=>{const button=$('#trainModel');button.disabled=true;try{$('#modelReport').textContent='学習・評価中…';const r=await apiCall('/v1/models/train','POST',{});$('#modelReport').textContent=JSON.stringify(r,null,2);$('#approveModelId').value=r.id||''}catch(e){tell(e.message)}finally{button.disabled=false}};$('#approveModel').onclick=async()=>{try{if(!confirm('時系列テスト結果・校正結果を確認しましたか？承認後はモデル推定に基づく買い候補を表示できます。'))return;const id=$('#approveModelId').value.trim();if(!/^[a-f0-9]{24}$/.test(id))throw Error('有効なモデルIDを指定してください');$('#modelReport').textContent=JSON.stringify(await apiCall('/v1/models/'+id+'/approve','POST',{}),null,2);serverDetail={}}catch(e){tell(e.message)}}}
+
 render();
 </script>
 </body>
