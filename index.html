@@ -319,6 +319,13 @@ tell('仮想検討記録を追加しました。');
 updateEV();
 renderTicketSettings();
 }
+// Manual-input sensitivity analysis; NEVER interpreted as calibrated predictions.
+function evScenarioTable(p,o,s,ok){
+if(!ok)return '<p class="muted">確率・オッズ・金額を入力すると感度分析を表示します。</p>';
+const low=Math.max(0,p*0.8),high=Math.min(1,p*1.2);
+const candidates=[['確率が20%低い場合',low],['入力した仮説',p],['確率が20%高い場合',high]];
+return `<div class="table-wrap"><table><thead><tr><th>仮定</th><th>的中確率</th><th>仮説期待収益率</th><th>仮説期待純損益</th></tr></thead><tbody>${candidates.map(([label,q])=>`<tr><td>${label}</td><td>${pct(q)}</td><td>${pct(q*o-1)}</td><td>${Math.round(s*(q*o-1)).toLocaleString()}円</td></tr>`).join('')}</tbody></table></div>`;
+}
 function updateEV(){
 let x=currentDraft(),p=num(x.probability),o=num(x.odds),s=num(x.stake);
 let ok=p>0&&p<=1&&o>=1&&Number.isFinite(o)&&s>=100&&s%100===0,status=judge(x);
@@ -329,7 +336,10 @@ $('#evResult').innerHTML=`
 <div class="stat"><small>仮説期待純損益</small><b>${ok?Math.round(s*(p*o-1)).toLocaleString()+'円':'—'}</b></div>
 </div>
 <p class="notice">判定：ケン。実オッズ・検証済み確率がないため、手入力の仮説だけでは買い候補にしません。</p>
-<p class="muted">損益分岐確率 ${o>=1&&Number.isFinite(o)?pct(1/o):'—'}。同一券種・同一レースの総確率が100%を超える組合せは整合しません。</p>`;
+<p class="muted">損益分岐確率 ${o>=1&&Number.isFinite(o)?pct(1/o):'—'}。同一券種・同一レースの総確率が100%を超える組合せは整合しません。</p>
+<h4>仮説確率の感度分析（±20%）</h4>
+<p class="muted">確率の推定誤差を仮定した比較です。±20%は説明用であり、推定誤差の実測値・信頼区間ではありません。オッズ固定、控除や変動は反映しません。</p>
+${evScenarioTable(p,o,s,ok)}`;
 $('#betList').innerHTML=table(['レース','券種','買い目','仮説確率','入力オッズ','金額'],db().bets.filter(b=>b.raceId===selected).map(b=>tr([esc(b.raceId),esc(b.type),esc(b.selection),pct(b.probability),esc(b.odds),esc(b.stake)])));
 }
 function settled(b){
