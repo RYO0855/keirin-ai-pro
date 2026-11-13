@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "node tests/check.cjs",
-    "test:browser": "node tests/browser.cjs",
+    "test:browser": "node tests/mobile-ui.cjs",
     "test:platform": "node tests/platform-browser.cjs",
     "test:api": "python -m unittest discover -s tests -p 'test_backend.py' -v"
   },
