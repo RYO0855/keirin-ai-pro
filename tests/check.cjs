@@ -5,8 +5,9 @@ const assert = require('node:assert/strict');
 const elements = new Map();
 function el(key) { if (!elements.has(key)) elements.set(key, {value: key === '#minN' ? '5' : key === '#minEV' ? '5' : '',innerHTML:'',textContent:'',style:{},insertAdjacentHTML(position,html){this.innerHTML+=html},querySelectorAll(){return[]},dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener(){}});return elements.get(key); }
 const context = vm.createContext({console, Date, Intl, JSON, Number, String, Object, Array, Set, Math, Error, RegExp, Blob, URL, setTimeout, clearTimeout, localStorage:{getItem(){return null},setItem(){},removeItem(){}}, document:{querySelector:el,querySelectorAll(){return[]}}});
+context.window = {addEventListener(){},scrollTo(){}}; context.history = {pushState(){},replaceState(){}};
 const html = fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
-vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
+vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1].split("// MOBILE_UI_START")[0],context);
 const run = code => vm.runInContext(code,context);
 assert.equal(run('validate(sample)'), true);
 assert.equal(run('computeBacktest(sample.bets, .05).cost'),1200);
