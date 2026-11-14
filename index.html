@@ -93,6 +93,32 @@ input:disabled,button:disabled,select:disabled{opacity:.6}
 .roster-table .note-link{font-size:11px;min-height:36px;background:#eaf2ff;color:#154fa9;border:1px solid #b8d3ff}
 .roster-note{font-size:10px;color:#667085;padding:10px 13px 0;margin:0}
 
+
+/* KEIRIN AI PRO Compact Roster v6 */
+.roster-card{padding:5px 0 7px!important}
+.roster-header{margin:0 0 3px!important;padding:0 8px}
+.roster-header h2{font-size:14px!important}
+.roster-help{padding:3px 8px;font-size:10px;line-height:1.2}
+.roster-note{padding:4px 8px 0;font-size:9px}
+.roster-table{font-size:11px!important;line-height:1.12!important;min-width:720px}
+.roster-table th,.roster-table td{padding:3px 4px!important;min-width:36px!important}
+.roster-table th{font-size:10px!important;height:26px}
+.roster-table td{height:46px!important}
+.roster-table th.roster-fixed-no,.roster-table td.roster-fixed-no{left:0;min-width:33px!important;width:33px!important;padding:2px!important}
+.roster-table th.roster-fixed-name,.roster-table td.roster-fixed-name{left:33px;width:116px!important;min-width:116px!important;max-width:116px!important;padding:3px 5px!important}
+.roster-table td.roster-fixed-name small{font-size:9px!important;margin-top:1px;line-height:1.1;white-space:nowrap}
+.roster-rider-name{font-size:11px!important;min-height:0!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+.roster-table .car{width:25px!important;height:26px!important;font-size:12px!important}
+.roster-table .roster-recent{min-width:62px!important}
+.roster-table th.roster-stat-head{min-width:33px!important}
+.roster-table .note-link{min-height:26px!important;padding:2px 4px!important;font-size:10px!important}
+.roster-card.roster-nine .roster-table td{height:38px!important}
+.roster-card.roster-nine .roster-table th{height:23px!important}
+.roster-card.roster-nine .roster-rider-name{font-size:10px!important}
+.roster-card.roster-nine .roster-table td.roster-fixed-name small{font-size:8px!important}
+.roster-card.roster-nine .roster-table .car{height:23px!important;width:23px!important}
+@media(max-width:430px){.roster-card{margin-inline:-6px!important}.roster-header{padding:0 7px}}
+/* End Compact Roster v6 */
 </style></head>
 <body><noscript><p>このアプリにはJavaScriptが必要です。</p></noscript>
 <header class="appbar"><button class="brand" id="brandHome" aria-label="ホームへ"><span class="brand-mark">K</span><span>KEIRIN AI PRO<small>RACE INSIGHT</small></span></button><label><span hidden>データソース</span><select class="source-select" id="source"><option value="sample">サンプル・架空</option><option value="live">yomisuji・参照</option><option value="backend">許可データAPI</option><option value="imported">取り込み・未検証</option></select></label></header>
@@ -1332,15 +1358,15 @@ const count=(e,names)=>{for(const k of names){const v=e[k];if(v!==null&&v!==unde
 const score=e=>e.race_points==null?'—':esc(e.race_points);
 const riderName=e=>source==='live'?displayName(e):e.name;
 const sorted=[...r.riders].sort((a,b)=>Number(a.no)-Number(b.no));
-root.innerHTML=`<section class="card roster-card">
+root.innerHTML=`<section class="card roster-card ${sorted.length>=9?'roster-nine':'roster-seven'}">
 <div class="section-heading roster-header"><h2>出走表</h2><span class="chip">${r.riders.length}車</span></div>
 <p class="roster-help">⇆ 表を左右にスワイプすると S・H・B と決まり手回数が見られます。選手名をタップすると個別メモを開きます。</p>
 <div class="roster-scroll" role="region" aria-label="出走表 横スクロール" tabindex="0">
 <table class="roster-table"><thead><tr>
 <th class="roster-fixed-no">車</th><th class="roster-fixed-name">選手名・登録番号</th>
-<th>競走得点</th><th>脚質</th><th>直近成績</th>
 <th class="roster-stat-head">S</th><th class="roster-stat-head">H</th><th class="roster-stat-head">B</th>
-<th class="roster-stat-head">逃</th><th class="roster-stat-head">捲</th><th class="roster-stat-head">差</th><th class="roster-stat-head">マ</th><th>個別メモ</th>
+<th class="roster-stat-head">逃</th><th class="roster-stat-head">捲</th><th class="roster-stat-head">差</th><th class="roster-stat-head">マ</th>
+<th>競走得点</th><th>脚質</th><th>直近成績</th><th>個別メモ</th>
 </tr></thead><tbody>${sorted.map(e=>{
 const notes=personal.notes.filter(n=>n.scope===source&&n.playerId===e.id);
 const name=esc(riderName(e));
@@ -1351,10 +1377,10 @@ const recent=Array.isArray(e.recent_results)?e.recent_results.slice(0,4).map(x=>
 return `<tr>
 <td class="roster-fixed-no"><span class="car c${Number(e.no)}">${esc(e.no)}</span></td>
 <td class="roster-fixed-name"><button class="roster-rider-name" type="button" data-player-memo="${esc(e.id)}" aria-label="${name}の個別メモを開く">${name}</button><small>${esc(e.prefecture||(source==='live'?profile(e.id)?.prefecture:null)||'所属未取得')} / ${esc(e.id)}</small></td>
-<td class="roster-score">${source==='live'?'—':score(e)}</td>
-<td>${esc(e.leg_type||e.style||'—')}</td><td class="roster-recent">${recent}</td>
 <td>${count(e,['s_count','sCount'])}</td><td>${count(e,['h_count','hCount'])}</td><td>${count(e,['b_count','bCount'])}</td>
 <td>${count(e,['nige_count','escape_count'])}</td><td>${count(e,['makuri_count','sprint_count'])}</td><td>${count(e,['sashi_count','pass_count'])}</td><td>${count(e,['mark_count','marking_count'])}</td>
+<td class="roster-score">${source==='live'?'—':score(e)}</td>
+<td>${esc(e.leg_type||e.style||'—')}</td><td class="roster-recent">${recent}</td>
 <td><button class="note-link" type="button" data-player-memo="${esc(e.id)}">${notes.length?notes.length+'件':'＋追加'}</button></td>
 </tr>`}).join('')}</tbody></table></div>
 <p class="roster-note">未取得のデータは「—」で表示。S・H・Bや決まり手は提供元データの接続後に反映されます。サンプル値を実成績として表示しません。</p>
