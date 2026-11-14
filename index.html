@@ -184,6 +184,18 @@ riders:[
 })),
 history:[],bets:[]
 };
+/* NINE_RIDER_SAMPLE_V1 */
+// 架空サンプル「奈良 9R」だけ9車立てにして画面確認に利用する。
+// 他のサンプルは7車立てのまま。実際の出走情報ではない。
+{
+  const demoNine = sample.races.find(r => r.id === 's4');
+  if (demoNine) {
+    demoNine.riders.push(
+      {no:8,id:'H',name:'サンプル林',line:4,position:1},
+      {no:9,id:'I',name:'サンプル中村',line:4,position:2}
+    );
+  }
+}
 for(let i=0;i<24;i++){
 sample.history.push({
 date:'2026-10-'+String(i+1).padStart(2,'0'),raceId:'past'+i,
