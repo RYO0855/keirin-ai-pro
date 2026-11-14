@@ -119,6 +119,30 @@ input:disabled,button:disabled,select:disabled{opacity:.6}
 .roster-card.roster-nine .roster-table .car{height:23px!important;width:23px!important}
 @media(max-width:430px){.roster-card{margin-inline:-6px!important}.roster-header{padding:0 7px}}
 /* End Compact Roster v6 */
+
+/* KEIRIN AI PRO Compact Roster v7 */
+/* Readable, dense rows; extra compact when nine riders are entered. */
+.roster-card .roster-table td{height:35px!important;padding:1px 3px!important}
+.roster-card.roster-nine .roster-table td{height:30px!important;padding:1px 3px!important}
+.roster-card .roster-table th{height:23px!important;padding:2px 3px!important}
+.roster-card.roster-nine .roster-table th{height:22px!important}
+.roster-card .roster-rider-name{font-size:11px!important;line-height:1.1!important;min-height:0!important}
+.roster-card.roster-nine .roster-rider-name{font-size:10.5px!important}
+.roster-card .roster-table td.roster-fixed-name small{font-size:9px!important;line-height:1!important;margin-top:0!important}
+.roster-card.roster-nine .roster-table td.roster-fixed-name small{font-size:8px!important}
+.roster-card .roster-table .car{width:22px!important;height:24px!important;font-size:11px!important}
+.roster-card.roster-nine .roster-table .car{width:21px!important;height:22px!important}
+.roster-card .roster-help{padding:2px 7px;font-size:9px}
+.roster-card .roster-header{margin-bottom:1px!important}
+/* Save vertical room on the race-detail screen without changing navigation behavior. */
+#workspaceView .tabs{padding:4px 0 5px!important;margin-bottom:7px!important;gap:4px!important}
+#workspaceView .tabs button{min-height:34px!important;padding:5px 10px!important;font-size:11px!important}
+#workspaceView .detail-hero{padding:7px 0!important}
+#workspaceView .detail-hero h2{font-size:21px!important;margin:3px 0!important}
+#workspaceView .detail-top{min-height:34px}
+#workspaceView .stat{padding:7px!important}
+#workspaceView #stats{margin:5px 0!important}
+/* End Compact Roster v7 */
 </style></head>
 <body><noscript><p>このアプリにはJavaScriptが必要です。</p></noscript>
 <header class="appbar"><button class="brand" id="brandHome" aria-label="ホームへ"><span class="brand-mark">K</span><span>KEIRIN AI PRO<small>RACE INSIGHT</small></span></button><label><span hidden>データソース</span><select class="source-select" id="source"><option value="sample">サンプル・架空</option><option value="live">yomisuji・参照</option><option value="backend">許可データAPI</option><option value="imported">取り込み・未検証</option></select></label></header>
