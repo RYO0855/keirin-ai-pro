@@ -70,6 +70,29 @@ td{color:#111827}
 input:disabled,button:disabled,select:disabled{opacity:.6}
 @media(prefers-contrast:more){:root{--line:#8fa2b9;--muted:#334155}.card,.venue-group{border-width:2px}}
 /* End Light Theme v4 */
+
+/* KEIRIN AI PRO Roster v5 */
+.roster-card{padding:12px 0 14px!important;overflow:hidden;background:#fff!important;color:#111!important}
+.roster-header{padding:0 14px;margin:0 0 8px!important}
+.roster-help{font-size:11px;color:#205ab5;padding:7px 13px;margin:0;background:#eff5ff}
+.roster-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.roster-table{border-collapse:separate!important;border-spacing:0!important;table-layout:fixed;min-width:940px;width:max-content!important;font-size:12px!important;line-height:1.35;color:#111;background:#fff}
+.roster-table th,.roster-table td{border-right:1px solid #e6ebf2;border-bottom:1px solid #e6ebf2;padding:10px 7px;text-align:center;min-width:55px;white-space:nowrap;background:#fff}
+.roster-table th{background:#eef2f7;color:#354359;font-weight:750;font-size:11px}
+.roster-table td{height:60px}
+.roster-table th.roster-fixed-no,.roster-table td.roster-fixed-no{position:sticky;left:0;z-index:3;min-width:43px;width:43px;padding:5px;background:#fff}
+.roster-table th.roster-fixed-name,.roster-table td.roster-fixed-name{position:sticky;left:43px;z-index:3;text-align:left;width:146px;min-width:146px;max-width:146px;background:#fff;box-shadow:3px 0 6px -4px #8190a5}
+.roster-table th.roster-fixed-no,.roster-table th.roster-fixed-name{background:#eef2f7;z-index:4}
+.roster-table td.roster-fixed-name small{display:block;font-size:10px;color:#667085;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+.roster-rider-name{display:block;text-align:left;min-height:32px;width:100%;padding:0!important;border:0!important;background:transparent!important;color:#0a408f!important;font-size:12px;font-weight:800;white-space:normal;line-height:1.35}
+.roster-rider-name:focus-visible{outline:2px solid #1769e0!important;outline-offset:2px}
+.roster-table .car{width:29px;height:32px}
+.roster-table .roster-score{font-weight:800;font-variant-numeric:tabular-nums}
+.roster-table .roster-recent{min-width:82px;font-variant-numeric:tabular-nums}
+.roster-table th.roster-stat-head{color:#145ac5;background:#edf4ff;min-width:43px}
+.roster-table .note-link{font-size:11px;min-height:36px;background:#eaf2ff;color:#154fa9;border:1px solid #b8d3ff}
+.roster-note{font-size:10px;color:#667085;padding:10px 13px 0;margin:0}
+
 </style></head>
 <body><noscript><p>このアプリにはJavaScriptが必要です。</p></noscript>
 <header class="appbar"><button class="brand" id="brandHome" aria-label="ホームへ"><span class="brand-mark">K</span><span>KEIRIN AI PRO<small>RACE INSIGHT</small></span></button><label><span hidden>データソース</span><select class="source-select" id="source"><option value="sample">サンプル・架空</option><option value="live">yomisuji・参照</option><option value="backend">許可データAPI</option><option value="imported">取り込み・未検証</option></select></label></header>
@@ -1301,7 +1324,43 @@ function uiMini(r){return `<button class="mini-race" data-open-race="${esc(r.id)
 function uiEmpty(title,text){return `<div class="empty"><strong>${esc(title)}</strong>${esc(text)}</div>`}
 function uiDrawHome(){const all=db().races,now=all.filter(r=>uiDate(r)===today),venues=[...new Set(now.map(r=>r.venue))],latest=all.map(uiDate).sort().pop(),focus=all.filter(r=>uiWatched(r)),buys=now.filter(r=>uiDecision(r).key==='buy'),kens=now.filter(r=>uiDecision(r).key==='ken'),recent=uiPrefs.recent.filter(r=>r.source===source);$('#homeView').innerHTML=`<div class="page-heading"><div><p class="eyebrow">YOUR RACE WORKSPACE</p><h1>今日の競輪を、見やすく。</h1><p class="view-intro">${esc(today)} / ${source==='sample'?'架空サンプルを表示中':source==='backend'?'許可データの取得範囲内':'取得済みデータの範囲内'}</p></div></div><section class="hero"><p class="eyebrow">KEIRIN AI PRO</p><h1>レースを選ぶ。<br>根拠を確かめる。</h1><p>ライン・連係・メモをまとめて確認。オッズや確率が足りないときは、ケンで待つ。</p><div class="hero-actions"><button class="primary" data-page-link="races">開催レースを見る ›</button><button class="secondary" data-page-link="settings">データを取得</button></div></section><div class="home-summary"><div class="summary-tile"><strong>${venues.length}</strong><span>今日の開催場</span></div><div class="summary-tile"><strong>${now.length}</strong><span>今日の登録レース</span></div><div class="summary-tile"><strong>${buys.length}</strong><span>判定済み買い候補</span></div></div><div class="home-layout"><div><div class="section-heading"><h2>今日の開催</h2><button class="text-button" data-show-today>すべて見る ›</button></div>${venues.length?`<div class="venue-grid">${venues.map(v=>{const rows=now.filter(r=>r.venue===v);return `<button class="venue-tile" data-venue="${esc(v)}"><span class="chip">${source==='sample'?'SAMPLE':'取得済み'}</span><strong>${esc(v)}</strong><small>${esc(rows[0].region||'地区未取得')}</small><div class="venue-footer"><span>${rows.length}レース</span><span>開催を見る ›</span></div></button>`}).join('')}</div>`:`<section class="card">${uiEmpty('今日の開催データがありません','最新取得日と本日は異なる場合があります。架空の開催で補完しません。')}${latest?`<button class="secondary full" data-latest-date="${esc(latest)}">取得済みの最新日 ${esc(latest)} を見る</button>`:'<button class="primary full" data-page-link="settings">データ取得へ</button>'}</section>`}<div class="section-heading"><h2>注目レース</h2><span class="view-intro">☆ 自分で登録したレース</span></div><section class="card">${focus.slice(0,4).map(uiMini).join('')||uiEmpty('注目レースは未登録です','開催一覧の☆をタップして保存できます。注目度をAI確率として作りません。')}</section></div><div><div class="section-heading"><h2>買い候補</h2><span class="decision buy">条件を満たした判定のみ</span></div><section class="card">${buys.slice(0,3).map(uiMini).join('')||uiEmpty('買い候補なし','承認済みモデル・実オッズ・必要点数が揃った場合だけ表示します。')}</section><div class="section-heading"><h2>ケン推奨</h2><span class="decision ken">見送り</span></div><section class="card">${kens.slice(0,3).map(uiMini).join('')||uiEmpty('表示対象なし','本日の登録レースがない、または判定を取得していません。')}</section><div class="section-heading"><h2>最近確認したレース</h2><span class="view-intro">この端末の閲覧履歴</span></div><section class="card">${recent.slice(0,4).map(r=>`<button class="mini-race" data-recent="${esc(r.id)}"><div><strong>${esc(r.venue)} ${esc(r.round)}</strong><small>${esc(r.date)}</small></div><span>›</span></button>`).join('')||uiEmpty('閲覧履歴はまだありません','レース詳細を開くと、ここに表示します。')}</section></div></div>`}
 function uiDrawRaces(){let rows=db().races.filter(r=>uiDate(r)===$('#date').value&&(!$('#region').value||r.region===$('#region').value));const q=$('#raceSearch').value.trim().toLowerCase(),filter=$('#decisionFilter').value;rows=rows.filter(r=>(!q||(r.venue+' '+r.round).toLowerCase().includes(q))&&(!filter||uiDecision(r).key===filter)&&(!ui.watchOnly||uiWatched(r)));$('#raceListCount').textContent=[...new Set(rows.map(r=>r.venue))].length+'開催場 / '+rows.length+'レース / '+$('#date').value;$('#watchFilter').classList.toggle('active',ui.watchOnly);$('#watchFilter').setAttribute('aria-pressed',String(ui.watchOnly));const venues=[...new Set(rows.map(r=>r.venue))];$('#races').innerHTML=venues.map(v=>{const list=rows.filter(r=>r.venue===v).sort((a,b)=>(a.start||'').localeCompare(b.start||'')||parseInt(a.round)-parseInt(b.round));return `<section class="venue-group"><div class="venue-heading"><div><strong>${esc(v)}</strong><small>${esc(list[0].region||'地区未取得')} / ${list.length}レース</small></div><span class="chip">${source==='sample'?'架空サンプル':source==='live'?'配信元の参照':'取得済み'}</span></div>${list.map(r=>`<div class="race-row"><button class="race" data-race="${esc(r.id)}"><span class="race-num">${/^\d{1,2}R$/i.test(r.round)?esc(r.round.replace(/R$/i,'')):'—'}<small>R</small></span><span class="race-main"><strong>${esc(uiTime(r))}</strong><small>${esc(r.grade|| (source==='sample'?'サンプル開催':'グレード未取得'))}</small><small>${r.riders.length?r.riders.length+'車':'出走表未取得'}</small></span><span class="race-end">${uiBadge(r)}<small>${uiWatched(r)?'自分の注目':'注目未登録'} ›</small></span></button><button class="star-button ${uiWatched(r)?'active':''}" data-watch="${esc(r.id)}" aria-label="${esc(v+' '+r.round)}の注目を切り替え" aria-pressed="${uiWatched(r)}">${uiWatched(r)?'★':'☆'}</button></div>`).join('')}</section>`}).join('')||`<section class="card">${uiEmpty('条件に合うレースがありません','日付・地区・判定の条件を変更するか、設定からデータを取得してください。')}</section>`}
-function uiRoster(){const r=race();$('#detailRoster').hidden=ui.page!=='detail'||tab!=='analysis';if(!r||!r.riders.length){$('#detailRoster').innerHTML='';return}$('#detailRoster').innerHTML=`<section class="card"><div class="section-heading" style="margin:0 0 12px"><h2>出走表</h2><span class="chip">${r.riders.length}車</span></div><div class="table-wrap"><table><thead><tr><th>車番</th><th>選手 / 登録番号</th><th>所属県</th><th>${source==='live'?'観測スコア ※確率ではない':'競走得点'}</th><th>メモ</th></tr></thead><tbody>${[...r.riders].sort((a,b)=>a.no-b.no).map(e=>{const notes=personal.notes.filter(n=>n.scope===source&&n.playerId===e.id);return `<tr><td><span class="car c${Number(e.no)}">${esc(e.no)}</span></td><td><strong>${esc(source==='live'?displayName(e):e.name)}</strong><br><small>${esc(e.id)}</small></td><td>${esc(e.prefecture|| (source==='live'?profile(e.id)?.prefecture:null)||'未取得')}</td><td>${source==='live'?(Number.isFinite(e.observationScore)?e.observationScore.toFixed(2):'—'):(e.race_points==null?'—':esc(e.race_points))}</td><td><button class="note-link" data-player-memo="${esc(e.id)}">${notes.length?notes.length+'件':'＋追加'}</button></td></tr>`}).join('')}</tbody></table></div></section>`}
+function uiRoster(){
+const root=$('#detailRoster'),r=race();
+root.hidden=ui.page!=='detail'||tab!=='analysis';
+if(!r||!r.riders.length){root.innerHTML='';return}
+const count=(e,names)=>{for(const k of names){const v=e[k];if(v!==null&&v!==undefined&&v!==''&&Number.isInteger(Number(v))&&Number(v)>=0)return String(Number(v))}return '—'};
+const score=e=>e.race_points==null?'—':esc(e.race_points);
+const riderName=e=>source==='live'?displayName(e):e.name;
+const sorted=[...r.riders].sort((a,b)=>Number(a.no)-Number(b.no));
+root.innerHTML=`<section class="card roster-card">
+<div class="section-heading roster-header"><h2>出走表</h2><span class="chip">${r.riders.length}車</span></div>
+<p class="roster-help">⇆ 表を左右にスワイプすると S・H・B と決まり手回数が見られます。選手名をタップすると個別メモを開きます。</p>
+<div class="roster-scroll" role="region" aria-label="出走表 横スクロール" tabindex="0">
+<table class="roster-table"><thead><tr>
+<th class="roster-fixed-no">車</th><th class="roster-fixed-name">選手名・登録番号</th>
+<th>競走得点</th><th>脚質</th><th>直近成績</th>
+<th class="roster-stat-head">S</th><th class="roster-stat-head">H</th><th class="roster-stat-head">B</th>
+<th class="roster-stat-head">逃</th><th class="roster-stat-head">捲</th><th class="roster-stat-head">差</th><th class="roster-stat-head">マ</th><th>個別メモ</th>
+</tr></thead><tbody>${sorted.map(e=>{
+const notes=personal.notes.filter(n=>n.scope===source&&n.playerId===e.id);
+const name=esc(riderName(e));
+const recent=Array.isArray(e.recent_results)?e.recent_results.slice(0,4).map(x=>{
+ const n=(typeof x==='number'||typeof x==='string')?x:(x&&typeof x==='object'?x.rank:null);
+ return n===null||n===undefined||n===''?'—':esc(String(n));
+}).join(' '):'—';
+return `<tr>
+<td class="roster-fixed-no"><span class="car c${Number(e.no)}">${esc(e.no)}</span></td>
+<td class="roster-fixed-name"><button class="roster-rider-name" type="button" data-player-memo="${esc(e.id)}" aria-label="${name}の個別メモを開く">${name}</button><small>${esc(e.prefecture||(source==='live'?profile(e.id)?.prefecture:null)||'所属未取得')} / ${esc(e.id)}</small></td>
+<td class="roster-score">${source==='live'?'—':score(e)}</td>
+<td>${esc(e.leg_type||e.style||'—')}</td><td class="roster-recent">${recent}</td>
+<td>${count(e,['s_count','sCount'])}</td><td>${count(e,['h_count','hCount'])}</td><td>${count(e,['b_count','bCount'])}</td>
+<td>${count(e,['nige_count','escape_count'])}</td><td>${count(e,['makuri_count','sprint_count'])}</td><td>${count(e,['sashi_count','pass_count'])}</td><td>${count(e,['mark_count','marking_count'])}</td>
+<td><button class="note-link" type="button" data-player-memo="${esc(e.id)}">${notes.length?notes.length+'件':'＋追加'}</button></td>
+</tr>`}).join('')}</tbody></table></div>
+<p class="roster-note">未取得のデータは「—」で表示。S・H・Bや決まり手は提供元データの接続後に反映されます。サンプル値を実成績として表示しません。</p>
+</section>`;
+}
+
 function uiFilterNotes(){const q=$('#memoSearch').value.trim().toLowerCase(),status=$('#memoStatus').value;let shown=0;$('#panel').querySelectorAll('[data-note-edit]').forEach(b=>{const n=personal.notes.find(n=>n.id===b.dataset.noteEdit);if(!n)return;const visible=(!ui.playerFilter||n.playerId===ui.playerFilter)&&(!q||[n.playerId,n.title,n.content,n.evidenceSource,n.evidenceQuote,n.referenceRaceId].join(' ').toLowerCase().includes(q))&&(!status||(status==='verified'?n.verified:!n.verified));b.closest('.stat').hidden=!visible;if(visible)shown++});$('#memoCount').textContent=shown+'件を表示 / 確認済みは利用者による根拠確認です。'}
 function uiEnhanceNotes(){if(!$('#noteForm'))return;/* INDIVIDUAL_RIDER_NOTES_V1 */const first=$('#noteForm').closest('.card'),list=first.nextElementSibling;if(list?.classList.contains('card'))$('#panel').prepend(list);let composer=$('#memoComposer');if(!composer){composer=document.createElement('details');composer.id='memoComposer';composer.className='memo-composer';const summary=document.createElement('summary');summary.textContent='＋ 選手メモを追加・編集';composer.append(summary);first.before(composer);composer.append(first);composer.open=!personal.notes.some(n=>n.scope===source)}$('#newNote').onclick=()=>{renderPlayerNotes();$('#memoComposer').open=true};if(ui.notesPlayer){$('#memoComposer').open=true;$('#notePlayer').value=ui.notesPlayer;ui.notesPlayer=''}$('#panel').querySelectorAll('[data-note-edit]').forEach(b=>{const n=personal.notes.find(n=>n.id===b.dataset.noteEdit),badge=b.closest('.stat')?.querySelector('.badge');if(badge&&n)badge.className='chip '+(n.verified?'accent':'')});if(ui.playerFilter&&ui.page==='notes'){
 const rider=(race()?.riders||[]).find(x=>x.id===ui.playerFilter);
